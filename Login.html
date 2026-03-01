@@ -1,0 +1,118 @@
+<head>
+  <title>Login - Evergreen Golf</title>
+  <link rel="stylesheet" href="./index.css">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  
+  <style>
+    /* CSS JUST FOR LOGIN PAGE */
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Override the mainContent margin from index.css */
+    #mainContent.login-box {
+      margin: 0;
+      padding: 40px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .login-box h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 800;
+      color: #2c3e50;
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .form-group input {
+      width: 100% !important; /* Force full width inside the box */
+      margin: 0 !important;
+      padding: 12px;
+    }
+
+    .login-btn {
+      background: #3498db;
+      color: white;
+      font-size: 16px;
+      padding: 12px;
+      margin-top: 10px;
+      border: none;
+      transition: background 0.3s;
+    }
+
+    .login-btn:hover {
+      background: #2980b9;
+    }
+
+    #output {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #e74c3c;
+      font-weight: 600;
+    }
+  </style>
+
+  <script defer>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const SUPABASE_URL = "https://krveybwqyuuipenhawtx.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_5nif9Qruk9n0ChTqgdtoIQ_g2YHVbao";
+      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        window.location.href = "./items.html";
+        return;
+      }
+
+      window.login = async function login() {
+        const email = document.getElementById("emailInput").value.trim();
+        const password = document.getElementById("passInput").value.trim();
+        const output = document.getElementById("output");
+
+        if (!email || !password) {
+          output.textContent = "Please fill in all fields.";
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (error) {
+          output.textContent = error.message;
+        } else {
+          output.style.color = "#2ecc71";
+          output.textContent = "Success! Redirecting...";
+          window.location.href = "./items.html";
+        }
+      };
+    });
+  </script>
+</head>
+
+<body>
+  <div id="mainContent" class="login-box">
+    <h1>MyShop Login</h1>
+
+    <div class="form-group">
+      <input id="emailInput" type="email" placeholder="Email">
+      <input id="passInput" type="password" placeholder="Password">
+      <button class="login-btn" onclick="login()">Login</button>
+      <p id="output"></p>
+    </div>
+  </div>
+</body>

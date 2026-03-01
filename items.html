@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stock</title>
+  <link rel="stylesheet" href="./index.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <style>
+    th { cursor: pointer; user-select: none; }
+    .sort-indicator { font-size: 12px; margin-left: 6px; opacity: 0.6; }
+    #searchBox { margin: 10px 0; padding: 8px; width: 250px; border-radius: 6px; border: 1px solid #ccc; }
+    /* Style for the Save button that appears during edit */
+    .saveRowBtn { background: #27ae60; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; margin-left: 5px; }
+  </style>
+</head>
+
+<body>
+<div id="mainContent">
+  <h1>Stock Overview</h1>
+  <button id="editToggleBtn">Enable Edit Mode</button>
+  <button id="addItemBtn" style="display:none;">Add New Item</button>
+  <br>
+  <input type="text" id="searchBox" placeholder="Search by Item Name...">
+  <div id="stockContainer"></div>
+</div>
+
+<button id="downloadCsvBtn" style="position: fixed; bottom: 20px; left: 20px; z-index: 2000; background: #1f7a44; color: white; padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+  📊 Export Stock to Excel (CSV)
+</button>
+
+<nav id="topBar"><h2>Evergreen Golf Inventory Management System</h2></nav>
+<nav id="rightSidebar">
+  <ul>
+    <li id="red"><button id="logoutBtn">Logout</button></li>
+    <li><a href="sales.html">Sales</a></li>
+    <li class="active"><a href="./items.html">Stock</a></li>
+  </ul>
+</nav>
+
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+  const SUPABASE_URL = "https://krveybwqyuuipenhawtx.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_5nif9Qruk9n0ChTqgdtoIQ_g2YHVbao";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // --- 1. SESSION CHECK (Security) ---
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    // If no user is logged in, redirect to Login page
+    window.location.href = "Login.html"; 
+    return; // Stop the rest of the script from running
+  }
+
+  // --- 2. LOGOUT LOGIC ---
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      await supabase.auth.signOut();
+      window.location.href = "Login.html";
+    };
+  }
+
+  // ... rest of your existing fetchData() and renderTable() code ...
+});
+document.addEventListener("DOMContentLoaded", async () => {
+  const SUPABASE_URL = "https://krveybwqyuuipenhawtx.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_5nif9Qruk9n0ChTqgdtoIQ_g2YHVbao";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const container = document.getElementById("stockContainer");
+  const editBtn = document.getElementById("editToggleBtn");
+  const addBtn = document.getElementById("addItemBtn");
+  const searchBox = document.getElementById("searchBox");
+  const downloadBtn = document.getElementById("downloadCsvBtn");
+
+  let editMode = false;
+  let stockData = [];
+  let currentSortColumn = -1;
+  let currentSortDirection = 1;
+addBtn.onclick = () => {
+  const tbody = container.querySelector("table tbody");
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>New</td>
+    <td><input type="text" id="nBar" placeholder="Barcode"></td>
+    <td><input type="text" id="nNam" placeholder="Item Name"></td>
+    <td><input type="number" id="nQty" placeholder="0"></td>
+    <td><input type="text" id="nUni" value="Pcs"></td>
+    <td><input type="number" id="nMrp" placeholder="0"></td>
+    <td>
+      <button class="saveBtn" id="confirmAdd">Save</button>
+      <button class="deleteBtn" onclick="this.closest('tr').remove()">Cancel</button>
+    </td>
+  `;
+  tbody.prepend(tr);
+
+  document.getElementById("confirmAdd").onclick = async () => {
+    // 1. Collect and Format Data
+    const payload = {
+      Barcode: document.getElementById("nBar").value.trim(),
+      Item_Name: document.getElementById("nNam").value.trim(),
+      QTY: parseInt(document.getElementById("nQty").value) || 0,
+      Unit: document.getElementById("nUni").value.trim(),
+      MRP: parseFloat(document.getElementById("nMrp").value) || 0
+    };
+
+    // 2. Validate
+    if (!payload.Barcode || !payload.Item_Name) {
+      alert("Please enter both Barcode and Item Name.");
+      return;
+    }
+
+    // 3. Insert to Supabase
+    const { error } = await supabase.from("Stock").insert([payload]);
+
+    if (error) {
+      console.error("Insert Error:", error);
+      alert("Error adding item: " + error.message);
+    } else {
+      // 4. Success! Refresh the list
+      await fetchData(); 
+      renderTable();
+    }
+  };
+};
+  async function fetchData() {
+    const { data } = await supabase.from("Stock").select("*").order('ID', { ascending: true });
+    stockData = data || [];
+  }
+// ================= RENDER TABLE =================
+  async function renderTable() {
+    container.innerHTML = "";
+
+    let filteredData = stockData.filter(item =>
+      item.Item_Name.toLowerCase().includes(searchBox.value.toLowerCase())
+    );
+
+    // Sort logic including Unit
+    if (currentSortColumn !== -1) {
+      filteredData.sort((a, b) => {
+        // Map column index to data keys
+        let keys = ["ID", "Barcode", "Item_Name", "QTY", "Unit", "MRP"];
+        let A = a[keys[currentSortColumn]] ?? "";
+        let B = b[keys[currentSortColumn]] ?? "";
+
+        if (typeof A === "number" && typeof B === "number") {
+          return (A - B) * currentSortDirection;
+        }
+        return A.toString().localeCompare(B.toString()) * currentSortDirection;
+      });
+    }
+
+    const table = document.createElement("table");
+    table.classList.add("stockTable");
+
+    // Added <th> for Unit and kept onclicks
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">ID <span class="sort-indicator"></span></th>
+          <th onclick="sortTable(1)">Barcode <span class="sort-indicator"></span></th>
+          <th onclick="sortTable(2)">Item Name <span class="sort-indicator"></span></th>
+          <th onclick="sortTable(3)">Qty <span class="sort-indicator"></span></th>
+          <th onclick="sortTable(4)">Unit <span class="sort-indicator"></span></th>
+          <th onclick="sortTable(5)">Price(₹) <span class="sort-indicator"></span></th>
+          ${editMode ? "<th>Actions</th>" : ""}
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector("tbody");
+
+    filteredData.forEach(row => {
+      const tr = document.createElement("tr");
+      tr.dataset.id = row.ID;
+
+      tr.innerHTML = `
+        <td>${row.ID}</td>
+        <td class="edit-cell" data-key="Barcode">${row.Barcode}</td>
+        <td class="edit-cell" data-key="Item_Name">${row.Item_Name}</td>
+        <td class="edit-cell" data-key="QTY">${row.QTY}</td>
+        <td class="edit-cell" data-key="Unit">${row.Unit || 'Pcs'}</td>
+        <td class="edit-cell" data-key="MRP">${row.MRP}</td>
+        ${editMode ? `<td class="actionsCell"><button class="deleteBtn">Delete</button></td>` : ""}
+      `;
+
+      tbody.appendChild(tr);
+      if (editMode) enableRowEditing(tr);
+    });
+
+    container.appendChild(table);
+    updateSortIndicators();
+  }
+
+  // ================= SORT FIX =================
+  window.sortTable = function(columnIndex) {
+    if (currentSortColumn === columnIndex) {
+      currentSortDirection *= -1;
+    } else {
+      currentSortDirection = 1;
+    }
+    currentSortColumn = columnIndex;
+    renderTable(); // Re-render triggers the filteredData.sort() above
+  }
+
+  function enableRowEditing(row) {
+    const cells = row.querySelectorAll(".edit-cell");
+    cells.forEach(cell => {
+      cell.contentEditable = true;
+      cell.style.background = "#f9f9a9";
+      cell.oninput = () => {
+        if (!row.querySelector(".saveRowBtn")) {
+          const saveBtn = document.createElement("button");
+          saveBtn.textContent = "Save";
+          saveBtn.className = "saveRowBtn";
+          row.querySelector(".actionsCell").appendChild(saveBtn);
+          saveBtn.onclick = async () => {
+            const up = {};
+            row.querySelectorAll(".edit-cell").forEach(c => {
+              const k = c.dataset.key;
+              up[k] = (k==='QTY' || k==='MRP') ? Number(c.textContent) : c.textContent.trim();
+            });
+            await supabase.from("Stock").update(up).eq("ID", row.dataset.id);
+            await fetchData(); renderTable();
+          };
+        }
+      };
+    });
+
+    row.querySelector(".deleteBtn").onclick = async () => {
+      if (confirm("Delete this item?")) {
+        await supabase.from("Stock").delete().eq("ID", row.dataset.id);
+        await fetchData(); renderTable();
+      }
+    };
+  }
+// 1. Handle Logout
+const logoutBtn = document.getElementById("logoutBtn");
+if (logoutBtn) {
+  logoutBtn.onclick = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      alert("Error logging out: " + error.message);
+    } else {
+      // Redirect to your login page
+      window.location.href = "Login.html"; 
+    }
+  };
+}
+  // EXCEL EXPORT LOGIC
+  downloadBtn.onclick = () => {
+    const headers = "ID,Barcode,Item Name,Quantity,Price(INR)\n";
+    const rows = stockData.map(r => `${r.ID},"${r.Barcode}","${r.Item_Name}",${r.QTY},${r.MRP}`).join("\n");
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Evergreen_Stock_${new Date().toLocaleDateString()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  editBtn.onclick = () => {
+    editMode = !editMode;
+    editBtn.textContent = editMode ? "Disable Edit Mode" : "Enable Edit Mode";
+    addBtn.style.display = editMode ? "inline-block" : "none";
+    renderTable();
+  };
+
+  searchBox.oninput = renderTable;
+  await fetchData(); renderTable();
+});
+</script>
+</body>
+</html>

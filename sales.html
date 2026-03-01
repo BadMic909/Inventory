@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sales - Evergreen Golf</title>
+  <link rel="stylesheet" href="index.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  
+  <style>
+    #warningModal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:30px; border-radius:12px; box-shadow:0 0 20px rgba(0,0,0,0.5); z-index:2000; text-align:center; }
+    #overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1999; }
+    .action-btns { display: flex; flex-direction: column; gap: 8px; }
+    .invoiceCell { font-weight: bold; font-size: 1.1em; color: #2c3e50; }
+  </style>
+</head>
+<body class="loaded">
+
+<div id="overlay"></div>
+<div id="warningModal">
+  <h3 style="color:#e74c3c">Insufficient Stock!</h3>
+  <p id="warningText"></p>
+  <br>
+  <button class="saveBtn" onclick="location.href='items.html'">Go to Stock Overview</button>
+  <button class="cancelBtn" onclick="closeWarning()">Close</button>
+</div>
+
+<nav id="topBar"><h2>Evergreen Golf Inventory Management System</h2></nav>
+<nav id="rightSidebar">
+  <ul>
+    <li id="red"><button id="logoutBtn">Logout</button></li>
+    <li class="active"><a href="sales.html">Sales</a></li>
+    <li><a href="items.html">Stock</a></li>
+  </ul>
+</nav>
+
+<div id="mainContent">
+  <h1>Sales Overview</h1>
+  <button id="addSaleBtn" class="addBtn">+ New Sale</button>
+  <br><br>
+  <input type="text" id="searchInput" placeholder="Search Customer...">
+  <table id="salesTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Sale No</th>
+        <th>Customer</th>
+        <th>Items Bought</th>
+        <th>Total (₹)</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+  const SUPABASE_URL = "https://krveybwqyuuipenhawtx.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_5nif9Qruk9n0ChTqgdtoIQ_g2YHVbao";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // --- 1. SESSION CHECK (Security) ---
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    // If no user is logged in, redirect to Login page
+    window.location.href = "Login.html"; 
+    return; // Stop the rest of the script from running
+  }
+
+  // --- 2. LOGOUT LOGIC ---
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.onclick = async () => {
+      await supabase.auth.signOut();
+      window.location.href = "Login.html";
+    };
+  }
+
+  // ... rest of your existing fetchData() and renderTable() code ...
+});
+document.addEventListener("DOMContentLoaded", async () => {
+  const SUPABASE_URL = "https://krveybwqyuuipenhawtx.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_5nif9Qruk9n0ChTqgdtoIQ_g2YHVbao";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let salesData = [], stockData = [];
+  const tbody = document.querySelector("#salesTable tbody");
+// 1. Handle Logout
+const logoutBtn = document.getElementById("logoutBtn");
+if (logoutBtn) {
+  logoutBtn.onclick = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      alert("Error logging out: " + error.message);
+    } else {
+      // Redirect to your login page
+      window.location.href = "Login.html"; 
+    }
+  };
+}
+window.downloadInvoice = (id, btn) => {
+  const logoBase64 = "data:image/png;base64,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";
+    const tr = btn.closest("tr");
+    const customer = tr.querySelector(".customerInput").value || "Valued Customer";
+    const saleNo = tr.querySelector(".saleNoInput").value || "N/A";
+    var Pay = "Paid"
+    var color="#1cc88a"
+    paint=prompt("Paid? True/False")
+    if (paint.toLowerCase()=="true" || paint.toLowerCase()=="paid"){
+      Pay="Paid";
+      color="#1cc88a";
+    }else{  
+      Pay="Payment pending";
+      color="#FF0000";
+    };
+    const items = [...tr.querySelectorAll(".itemRow")].map(r => {
+      const bc = r.querySelector(".bc").value.trim();
+      const s = stockData.find(x => x.Barcode == bc);
+      return {
+        name: s ? s.Item_Name : bc,
+        qty: parseFloat(r.querySelector(".qtyInput").value) || 0,
+        price: parseFloat(r.querySelector(".pr").value) || 0
+      };
+    });
+
+    let total = 0;
+    const rowsHtml = items.map(i => {
+      const lineTotal = i.qty * i.price;
+      total += lineTotal;
+      return `
+        <tr>
+          <td style="padding:10px; border-bottom:1px solid #eee;">${i.name}</td>
+          <td style="padding:10px; border-bottom:1px solid #eee; text-align:center;">${i.qty}</td>
+          <td style="padding:10px; border-bottom:1px solid #eee; text-align:center;">₹${i.price.toLocaleString()}</td>
+          <td style="padding:10px; border-bottom:1px solid #eee; text-align:right;">₹${lineTotal.toLocaleString()}</td>
+        </tr>`;
+    }).join("");
+
+    const element = document.createElement('div');
+    element.innerHTML = `
+      <div style="padding:40px; font-family:'Poppins', sans-serif; color: #333;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #1cc88a; padding-bottom:15px;">
+          <div style="flex: 1;">
+            <img src="${logoBase64}" style="height:90px; display: block;">
+          </div>
+          <div style="text-align:right; flex: 1;">
+            <h1 style="margin:0; color:#2c3e50; font-size: 24px;">TAX INVOICE</h1>
+            <p style="margin:5px 0; color:#7f8c8d; font-weight:600;">#SALE-${saleNo}</p>
+            <p style="margin:0; color:#7f8c8d; font-size: 14px;">Date: ${new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+
+        <div style="margin-top:30px; display: flex; justify-content: space-between;">
+          <div>
+            <p style="margin:0; color:#7f8c8d; font-size: 12px; text-transform: uppercase;">Billed To</p>
+            <h3 style="margin:5px 0; color:#2c3e50;">${customer}</h3>
+          </div>
+          <div style="text-align: right;">
+            <p style="margin:0; color:#7f8c8d; font-size: 12px; text-transform: uppercase;">Status</p>
+            <h3 style="margin:5px 0; color:${color};">${Pay}</h3>
+          </div>
+        </div>
+
+        <table style="width:100%; border-collapse:collapse; margin-top:30px;">
+          <thead>
+            <tr style="background:#f8f9fc; color:#2c3e50;">
+              <th style="padding:12px; text-align:left; border-bottom:2px solid #e3e6f0; font-size: 13px;">Item Description</th>
+              <th style="padding:12px; text-align:center; border-bottom:2px solid #e3e6f0; font-size: 13px;">Qty</th>
+              <th style="padding:12px; text-align:center; border-bottom:2px solid #e3e6f0; font-size: 13px;">Price</th>
+              <th style="padding:12px; text-align:right; border-bottom:2px solid #e3e6f0; font-size: 13px;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+
+        <div style="margin-top:30px; border-top: 2px solid #f8f9fc; padding-top: 10px;">
+          <div style="display: flex; justify-content: flex-end;">
+            <div style="width: 200px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color:#7f8c8d;">Subtotal:</span>
+                <span>₹${total.toLocaleString()}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 18px; color: #2c3e50; border-top: 1px solid #eee; padding-top: 10px;">
+                <span>Grand Total:</span>
+                <span>₹${total.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align:center; margin-top:80px; border-top:1px solid #eee; padding-top:20px;">
+          <h3 style="color:#1cc88a; margin-bottom:5px;">Thank you for your business!</h3>
+          <p style="margin:0; font-size:12px; color:#95a5a6;">Evergreen Golf | Premium Golf Equipment</p>
+          <p style="margin:0; font-size:12px; color:#95a5a6;">www.evergreengolfindia.com</p>
+        </div>
+      </div>`;
+
+const opt = {
+  margin: 0.25,
+  filename: `Invoice_${saleNo}.pdf`,
+  image: { type: 'jpeg', quality: 0.98 },
+  html2canvas: { 
+    scale: 3, 
+    useCORS: true, 
+    logging: false,
+    letterRendering: true 
+  },
+  jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+};
+    html2pdf().from(element).set(opt).save();
+  };
+  async function fetchData() {
+    const { data: sales } = await supabase.from("Sales").select("*").order("id", { ascending: false });
+    const { data: stock } = await supabase.from("Stock").select("*");
+    salesData = sales || []; 
+    stockData = stock || [];
+  }
+
+  function renderTable() {
+    tbody.innerHTML = "";
+    salesData.forEach(row => {
+      const itemsHtml = (row.Item_RP || []).map(i => {
+        const s = stockData.find(x => x.Barcode == i.barcode);
+        return `<div>${s ? s.Item_Name : '??'} | ${i.qty || 1} @ ₹${i.price}</div>`;
+      }).join("");
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${row.id}</td>
+        <td>${row.Sale_No}</td>
+        <td>${row.Customer_Name}</td>
+        <td>${itemsHtml}</td>
+        <td>₹${(row.Invoice || 0).toLocaleString()}</td>
+        <td class="action-btns">
+          <button class="saveBtn" onclick="enterEditMode(${row.id})">Edit</button>
+          <button class="deleteBtn" onclick="deleteSale(${row.id})">Delete</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  window.deleteSale = async (id) => {
+    if(confirm("Delete this sale record?")) {
+      await supabase.from("Sales").delete().eq("id", id);
+      await fetchData(); renderTable();
+    }
+  };
+
+  window.enterEditMode = (id) => {
+    const sale = salesData.find(s => s.id == id);
+    const tr = [...tbody.children].find(r => r.children[0].textContent == id);
+    tr.innerHTML = `
+      <td>${sale.id}</td>
+      <td><input type="number" class="saleNoInput" value="${sale.Sale_No}"></td>
+      <td><input type="text" class="customerInput" value="${sale.Customer_Name || ''}"></td>
+      <td><div class="itemsContainer"></div><button class="addBtn" onclick="addItemRow(this)">+ Item</button></td>
+      <td class="invoiceCell">₹0</td>
+      <td class="action-btns">
+        <button class="saveBtn" onclick="saveSale(${id}, this)">Complete Sale</button>
+        <button class="addBtn" style="background:#f39c12" onclick="downloadInvoice(${id}, this)">PDF Invoice</button>
+        <button class="cancelBtn" onclick="location.reload()">Cancel</button>
+      </td>
+    `;
+    const container = tr.querySelector(".itemsContainer");
+    (sale.Item_RP || []).forEach(i => addItemRow(null, container, i.barcode, i.price, i.qty));
+    updateTotalLive(tr);
+  };
+
+  window.addItemRow = (btn, container, bc="", pr="", qty=1) => {
+    const target = container || btn.previousElementSibling;
+    const div = document.createElement("div");
+    div.className = "itemRow";
+    div.style.marginBottom = "8px";
+    div.innerHTML = `
+      <input type="text" class="bc" value="${bc}" placeholder="Barcode" style="width:90px">
+      <input type="number" class="qtyInput" value="${qty}" style="width:50px">
+      <input type="number" class="pr" value="${pr}" placeholder="Price" style="width:80px">
+      <button class="deleteBtn" style="padding: 2px 8px;" onclick="this.parentElement.remove(); updateTotalLive(this.closest('tr'))">x</button>
+    `;
+    target.appendChild(div);
+
+    // Live Listeners for Total and Autocomplete
+    const bcInp = div.querySelector(".bc");
+    const qtyInp = div.querySelector(".qtyInput");
+    const prInp = div.querySelector(".pr");
+
+    [bcInp, qtyInp, prInp].forEach(input => {
+      input.addEventListener("input", () => {
+        if(input === bcInp) {
+          const s = stockData.find(x => x.Barcode == bcInp.value.trim());
+          if(s) prInp.value = s.MRP;
+        }
+        updateTotalLive(div.closest("tr"));
+      });
+    });
+  };
+
+  window.updateTotalLive = (tr) => {
+    let total = 0;
+    tr.querySelectorAll(".itemRow").forEach(row => {
+      const q = parseFloat(row.querySelector(".qtyInput").value) || 0;
+      const p = parseFloat(row.querySelector(".pr").value) || 0;
+      total += (q * p);
+    });
+    tr.querySelector(".invoiceCell").textContent = "₹" + total.toLocaleString();
+  };
+
+window.saveSale = async (id, btn) => {
+  const tr = btn.closest("tr");
+  
+  // 1. Get the NEW values from the form
+  const newItems = [...tr.querySelectorAll(".itemRow")].map(r => ({
+    barcode: r.querySelector(".bc").value.trim(),
+    qty: parseInt(r.querySelector(".qtyInput").value) || 0,
+    price: parseFloat(r.querySelector(".pr").value) || 0
+  }));
+
+  // 2. Fetch the OLD sale data to see what was previously deducted
+  const { data: oldSale } = await supabase.from("Sales").select("Item_RP").eq("id", id).single();
+  const oldItems = oldSale ? oldSale.Item_RP : [];
+
+  // 3. Stock Validation Check
+  for (const newItem of newItems) {
+    const s = stockData.find(x => x.Barcode == newItem.barcode);
+    const oldItem = oldItems.find(oi => oi.barcode === newItem.barcode);
+    const oldQty = oldItem ? oldItem.qty : 0;
+    
+    // Effective stock available = Current Stock + What we previously sold
+    const effectiveStock = (s ? s.QTY : 0) + oldQty;
+
+    if (!s || effectiveStock < newItem.qty) {
+      showWarning(`Item: ${s ? s.Item_Name : newItem.barcode}<br>Available: ${effectiveStock} | Req: ${newItem.qty}`);
+      return;
+    }else{if(0 >= newItem.qty){
+      showWarning(`Item: ${s ? s.Item_Name : newItem.barcode}<br>You can't request Negative quantity: ${newItem.qty}`);
+      return;
+    }}
+  }
+
+  // 4. Update Stock (The Logic: Return Old, Subtract New)
+  // First, "Return" all old items to stock
+  for (const oldItem of oldItems) {
+    const s = stockData.find(x => x.Barcode == oldItem.barcode);
+    if (s) {
+      const { data: currentStock } = await supabase.from("Stock").select("QTY").eq("Barcode", oldItem.barcode).single();
+      await supabase.from("Stock").update({ QTY: currentStock.QTY + oldItem.qty }).eq("Barcode", oldItem.barcode);
+    }
+  }
+
+  // Second, "Subtract" all new items from stock
+  for (const newItem of newItems) {
+    const { data: currentStock } = await supabase.from("Stock").select("QTY").eq("Barcode", newItem.barcode).single();
+    await supabase.from("Stock").update({ QTY: currentStock.QTY - newItem.qty }).eq("Barcode", newItem.barcode);
+  }
+
+  // 5. Update the Sale record
+  const total = newItems.reduce((a, b) => a + (b.price * b.qty), 0);
+  await supabase.from("Sales").update({
+    Sale_No: Number(tr.querySelector(".saleNoInput").value),
+    Customer_Name: tr.querySelector(".customerInput").value,
+    Item_RP: newItems,
+    Invoice: total
+  }).eq("id", id);
+
+  alert("Sale Updated & Stock Adjusted!");
+  await fetchData(); 
+  renderTable();
+};
+
+  window.showWarning = (msg) => {
+    document.getElementById("warningText").innerHTML = msg;
+    document.getElementById("warningModal").style.display = "block";
+    document.getElementById("overlay").style.display = "block";
+  };
+  window.closeWarning = () => {
+    document.getElementById("warningModal").style.display = "none";
+    document.getElementById("overlay").style.display = "none";
+  };
+
+  document.getElementById("addSaleBtn").onclick = async () => {
+    const { data } = await supabase.from("Sales").insert([{ Sale_No: 1, Item_RP: [], Invoice: 0, Customer_Name: "" }]).select().single();
+    await fetchData(); renderTable(); enterEditMode(data.id);
+  };
+
+  await fetchData(); renderTable();
+});
+</script>
+</body>
+</html>

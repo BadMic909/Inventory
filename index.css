@@ -1,0 +1,168 @@
+/* ================= GLOBAL & RESET ================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+body {
+  background: linear-gradient(to right, #4e73df, #1cc88a);
+  margin: 0;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+/* Page Transition for Sales */
+body.loaded {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+h1 { color: #000; margin-bottom: 20px; }
+
+/* ================= LAYOUT ================= */
+#topBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 200px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  padding: 0 30px;
+  background: rgba(255, 221, 0, 0.329);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 15px rgb(124, 76, 21);
+  z-index: 1000;
+
+}
+
+#topBar h2 { margin: 0; color: #2c3e50; }
+
+#rightSidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 100vh;
+  background-color: #2c3e50;
+  padding-top: 0px;
+  box-shadow: -10px 10 20px rgba(0,0,0,0.15);
+  z-index: 1001;
+}
+
+#mainContent {
+  margin-top: 90px;
+  margin-right: 200px;
+  padding: 0px;
+}
+
+/* ================= NAVIGATION ================= */
+#rightSidebar ul { list-style: none; }
+#rightSidebar ul li { text-align: center; }
+
+#rightSidebar ul li a,
+#rightSidebar ul li button {
+  display: block;
+  padding: 20px;
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+  width: 100%;
+}
+
+#rightSidebar ul li a:hover,
+#rightSidebar ul li button:hover{
+  background-color: #00ff0036;
+}
+#rightSidebar .active a {
+  background-color: #00bb06f8;
+}
+#rightSidebar .logoutBtn a{
+  background-color: #ff0000f8;
+}
+#rightSidebar #red{
+  background-color: #ff000060;
+}
+#rightSidebar #red:hover{
+  background-color: #ff0000;
+}
+/* ================= TABLES ================= */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  margin-top: 0px;
+}
+
+th, td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+}
+
+th {
+  background: #3498db;
+  color: white;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sort-indicator {
+  font-size: 12px;
+  margin-left: 6px;
+  opacity: 0.6;
+}
+
+/* ================= FORMS & INPUTS ================= */
+input[type="text"], input[type="number"], #searchBox, #searchInput {
+  padding: 8px;
+  border: 2px solid #3498db;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  outline: none;
+}
+
+input:focus {
+  border-color: #2ecc71;
+  box-shadow: 0 0 5px rgba(46, 204, 113, 0.5);
+}
+
+/* ================= BUTTONS ================= */
+button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+button:hover { opacity: 0.8; }
+
+.addBtn, #addItemBtn { background: #2ecc71; color: white; }
+.deleteBtn { background: #e74a3b; color: white; }
+.saveBtn, .saveRowBtn, .saveNew { background: #3498db; color: white; }
+.cancelBtn, .cancelNew { background: #6c757d; color: white; }
+.logoutBtn{background:red;}
+
+#editToggleBtn { background: white; color: #2c3e50; border: 1px solid #ccc; }
+
+/* ================= SALES SPECIFIC ================= */
+.itemRow {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 6px;
+  justify-content: center;
+}
+.itemsContainer { display: flex; flex-direction: column; align-items: center; }
+.invoiceCell { font-weight: bold; color: #2c3e50; }
