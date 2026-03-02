@@ -29,7 +29,7 @@
     // --- 1. THE SECRET CHECK ---
     const params = new URLSearchParams(window.location.search);
     const accessKey = params.get('key');
-    const KEY2 = params.get('k2')
+    const KEY2 = params.get('k2');
     // --- 2. YOUR ORIGINAL LOGIC STARTS HERE ---
     const CONFIG = {
         URL: "https://krveybwqyuuipenhawtx.supabase.co",
@@ -38,7 +38,7 @@
         GAS: "https://script.google.com/macros/s/AKfycbyCrEQ5HTpBqhqiN11YpDUy8QuIQ3MZuxgecWSMr3M5Cm5MCc4Dvq0F06ItucVp25G7/exec",
     };
     var AUTH = accessKey;
-    const supabase = window.supabase.createClient(CONFIG.URL, CONFIG.KEY);
+    const supabase = window.supabase.createClient(CONFIG.URL, accessKey);
     const dateStr = new Date().toISOString().split('T')[0];
 async function logUserUUID(){
   const { data: { user }, error } = await supabase.auth.getUser();
@@ -165,6 +165,7 @@ await fetch(CONFIG.GAS, {
 </script>
 </body>
 </html>
+
 
 
 
