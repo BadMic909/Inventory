@@ -2,12 +2,25 @@ name: Open Website Daily
 on:
   schedule:
     - cron: '30 13 * * *' # 7:00 PM IST
-  workflow_dispatch:      # <--- ADD THIS LINE TO ENABLE MANUAL TESTING
+  workflow_dispatch:
+
 jobs:
   open_url:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Website
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright
+        run: npm install playwright
+
+      - name: Open Page and Wait for Script
         run: |
-          # The -m 30 tells curl to stay "active" for 30 seconds
-          curl -L -m 30 "https://badmic909.github.io/Inventory/post.html?key=${{ secrets.MY_REPORT_KEY }}"
+          # This script tells Playwright to open your URL and wait 30 seconds
+          # so your JavaScript has time to finish the email fetch.
+          npx playwright wk "https://badmic909.github.io/Inventory/post.html?key=${{ secrets.MY_REPORT_KEY }}" --wait-for-timeout 30000
