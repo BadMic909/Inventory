@@ -6,7 +6,6 @@ on:
 jobs:
   open_url:
     runs-on: ubuntu-latest
-    container: alpine/curl
     steps:
       - name: Checkout
         uses: actions/checkout@v4
