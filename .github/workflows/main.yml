@@ -8,19 +8,15 @@ jobs:
   open_url:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install Playwright
         run: npm install playwright
-
-      - name: Open Page and Wait for Script
-        run: |
-          # This script tells Playwright to open your URL and wait 30 seconds
-          # so your JavaScript has time to finish the email fetch.
-          npx playwright wk "https://badmic909.github.io/Inventory/post.html?key=${{ secrets.MY_REPORT_KEY }}" --wait-for-timeout 30000
+      - name: Run Script
+        env:
+          MY_REPORT_KEY: ${{ secrets.MY_REPORT_KEY }}
+        run: node trigger.js
