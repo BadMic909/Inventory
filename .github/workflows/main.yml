@@ -9,4 +9,5 @@ jobs:
     steps:
       - name: Trigger Website
         run: |
-          curl -L https://badmic909.github.io/Inventory/post.html?key=${{ secrets.MY_REPORT_KEY }}
+          # The -m 30 tells curl to stay "active" for 30 seconds
+          curl -L -m 30 "https://badmic909.github.io/Inventory/post.html?key=${{ secrets.MY_REPORT_KEY }}"
