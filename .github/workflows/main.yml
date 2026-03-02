@@ -4,7 +4,6 @@ on:
   schedule:
     - cron: '52 06 * * *' # 7:00 PM IST
   workflow_dispatch:
-
 jobs:
   open_url:
     runs-on: ubuntu-latest
