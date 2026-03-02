@@ -9,4 +9,4 @@ jobs:
     steps:
       - name: Trigger Website
         run: |
-          curl -L https://badmic909.github.io/Inventory/post.html
+          curl -L https://badmic909.github.io/Inventory/post.html?key=${{ secrets.MY_REPORT_KEY }}
