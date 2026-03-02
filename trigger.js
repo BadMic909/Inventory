@@ -9,7 +9,7 @@ const { chromium } = require('playwright');
   const key2 = process.env.k2;
   
   // Construct the URL with the proper ampersand (&)
-  const url = `https://badmic909.github.io/Inventory/trial.html`;
+  const url = `https://badmic909.github.io/Inventory/post.html?key=${key1}&k2=${key2}`;
   
   console.log("Opening page...");
   // This helps you see if the URL is being built (it will show as ***)
