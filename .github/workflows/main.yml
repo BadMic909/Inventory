@@ -1,7 +1,7 @@
 name: Open Website Daily
 on:
   schedule:
-    - cron: '30 13 * * *' # Set for 7:00 PM IST
+    - cron: '*/5 * * * *' # Set for 7:00 PM IST
   workflow_dispatch:      # <--- THIS ADDS THE MANUAL RUN BUTTON
 jobs:
   open_url:
