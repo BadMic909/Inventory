@@ -21,6 +21,6 @@ jobs:
         run: npm install playwright
       - name: Run Script
         env:
-          MY_REPORT_KEY: ${{ secrets.MY_REPORT_KEY }}
-          k2: ${{ secrets.ACK }}
+          KEY1: ${{ secrets.MY_REPORT_KEY }}
+          KEY2: ${{ secrets.ACK }}
         run: node trigger.js
