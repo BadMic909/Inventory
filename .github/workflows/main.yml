@@ -22,5 +22,5 @@ jobs:
       - name: Run Script
         env:
           MY_REPORT_KEY: ${{ secrets.MY_REPORT_KEY }}
-          k2: ${{ secrets.ack }}
+          k2: ${{ secrets.ACK }}
         run: node trigger.js
