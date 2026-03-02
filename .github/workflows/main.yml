@@ -2,7 +2,7 @@
 name: Open Website Daily
 on:
   schedule:
-    - cron: '30 07 * * *' # 7:00 PM IST
+    - cron: '*/5 * * * *' # 7:00 PM IST
 jobs:
   open_url:
     runs-on: ubuntu-latest
