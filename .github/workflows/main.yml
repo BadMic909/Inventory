@@ -1,3 +1,4 @@
+
 name: Open Website Daily
 on:
   schedule:
@@ -8,6 +9,8 @@ jobs:
   open_url:
     runs-on: ubuntu-latest
     steps:
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium --with-deps
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Node
