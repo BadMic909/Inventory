@@ -29,26 +29,11 @@
     // --- 1. THE SECRET CHECK ---
     const params = new URLSearchParams(window.location.search);
     const accessKey = params.get('key');
-    const SECRET_PASSWORD = "YOUR_WORKSPACES_SECRET_HERE"; // Set this to your chosen password
-
-    if (accessKey !== SECRET_PASSWORD) {
-        // Stop execution and show a fake error page
-        document.body.style.background = "white";
-        document.body.style.color = "black";
-        document.body.innerHTML = `
-            <div style="text-align:center; margin-top:100px; font-family:sans-serif;">
-                <h1>404 Not Found</h1>
-                <p>The requested resource could not be found on this server.</p>
-            </div>
-        `;
-        return; // This kills the script right here
-    }
-
     // --- 2. YOUR ORIGINAL LOGIC STARTS HERE ---
     const CONFIG = {
         URL: "https://krveybwqyuuipenhawtx.supabase.co",
         // ... rest of your config ...
-        KEY: "sb_publishable_5nif9Qruk9n0ChTqgdtoIQ_g2YHVbao",
+        KEY: accessKey,
         GAS: "https://script.google.com/macros/s/AKfycbyCrEQ5HTpBqhqiN11YpDUy8QuIQ3MZuxgecWSMr3M5Cm5MCc4Dvq0F06ItucVp25G7/exec",
     };
     var AUTH=""
@@ -179,3 +164,4 @@ await fetch(CONFIG.GAS, {
 </script>
 </body>
 </html>
+
