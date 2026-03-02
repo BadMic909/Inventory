@@ -6,6 +6,7 @@ on:
 jobs:
   open_url:
     runs-on: ubuntu-latest
+    container: alpine/curl
     steps:
       - name: Install Playwright Browsers
         run: npx playwright install chromium --with-deps
