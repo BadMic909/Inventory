@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Evergreen Golf - Daily Dispatch</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #0f172a; color: white; }
+        .card { background: #1e293b; padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 400px; }
+        .spinner { border: 4px solid rgba(255,255,255,0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: #22c55e; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .success-text { color: #22c55e; display: none; font-size: 3rem; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="loader" class="spinner"></div>
+    <h2 id="msg">Generating Daily Report...</h2>
+    <p id="sub-msg">Matching Barcodes to Stock...</p>
+    <h1 id="success-icon" class="success-text">✓</h1>
+</div>
+
+<div id="report-template" style="display:none; color: #333; padding: 40px;"></div>
+<script>
+(async () => {
+    // --- 1. THE SECRET CHECK ---
+    const params = new URLSearchParams(window.location.search);
+    const accessKey = "sb_secret_PyNA6jZ6OwQO9EwueNoxjA_G6TJezqd"
+    const KEY2 = "0a1854aa-0903-4b26-ac5d-c4bf26dae722"
+    // --- 2. YOUR ORIGINAL LOGIC STARTS HERE ---
+    const CONFIG = {
+        URL: "https://krveybwqyuuipenhawtx.supabase.co",
+        // ... rest of your config ...
+        KEY: accessKey,
+        GAS: "https://script.google.com/macros/s/AKfycbyCrEQ5HTpBqhqiN11YpDUy8QuIQ3MZuxgecWSMr3M5Cm5MCc4Dvq0F06ItucVp25G7/exec",
+    };
+    var AUTH = accessKey;
+    const supabase = window.supabase.createClient(CONFIG.URL, accessKey);
+    const dateStr = new Date().toISOString().split('T')[0];
+async function logUserUUID(){
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  if (user) {
+    console.log("Logged In UUID:", user.id);
+    AUTH=user.id
+  } else {
+    console.log("No user logged in", error);
+  }
+}
+
+// Call it anywhere
+// await logUserUUID();
+    try {
+        // 1. Fetch Sales for the day
+        const { data: sales, error: salesErr } = await supabase
+            .from("Sales")
+            .select("*")
+            .gte("created_at", `${dateStr}T01:00:00Z`)
+            .lte("created_at", `${dateStr}T19:00:00Z`);
+
+        if (salesErr) throw salesErr;
+        if (!sales || sales.length === 0) {
+            document.getElementById('msg').innerText = "No Sales Today";
+            document.getElementById('loader').style.display = 'none';
+            return;
+        }
+
+        // 2. Fetch all Stock to match names (Same logic as your dashboard)
+        const { data: stockData, error: stockErr } = await supabase.from("Stock").select("*");
+        if (stockErr) throw stockErr;
+
+        let totalRevenue = 0;
+        let totalItemsCount = 0;
+
+        // 3. Render Table Rows using the stockData lookup
+        const rows = sales.map(row => {
+            const invoiceVal = parseFloat(row.Invoice || 0);
+            totalRevenue += invoiceVal;
+
+            // Logic from your fetchData(): find s where s.Barcode == i.barcode
+            const itemsHtml = (row.Item_RP || []).map(i => {
+                const s = stockData.find(x => x.Barcode == i.barcode);
+                const itemName = s ? s.Item_Name : (i.barcode || 'Unknown');
+                const qty = parseInt(i.qty || 1);
+                totalItemsCount += qty;
+                return `<div>${itemName} | ${qty} @ ₹${i.price}</div>`;
+            }).join("");
+
+            return `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding:12px; vertical-align:top;">#${row.Sale_No}</td>
+                    <td style="padding:12px;">
+                        <div style="font-weight:600;">${row.Customer_Name || 'Guest'}</div>
+                        <div style="font-size:0.85em; color:#666; margin-top:4px;">${itemsHtml}</div>
+                    </td>
+                    <td style="padding:12px; text-align:right; vertical-align:top;">₹${invoiceVal.toLocaleString()}</td>
+                </tr>`;
+        }).join('');
+
+        // 4. Update the Report Template
+        const reportTarget = document.getElementById('report-template');
+        reportTarget.style.display = 'block';
+        reportTarget.innerHTML = `
+            <div style="font-family: 'Poppins', sans-serif; padding: 20px;">
+                <h1 style="color:#1e293b; border-bottom: 4px solid #22c55e; padding-bottom:10px;">Daily Sales Summary</h1>
+                <p style="color:#64748b;">Report Date: ${dateStr}</p>
+                <div style="display:flex; justify-content:space-between; margin: 25px 0; background:#f8fafc; padding:20px; border-radius:10px; border: 1px solid #e2e8f0; color:#333;">
+                    <div><small>TOTAL SALES</small><br><strong>${sales.length}</strong></div>
+                    <div><small>ITEMS SOLD</small><br><strong>${totalItemsCount}</strong></div>
+                    <div style="text-align:right;"><small>REVENUE</small><br><strong style="color:#16a34a; font-size:1.2em;">₹${totalRevenue.toLocaleString()}</strong></div>
+                </div>
+                <table style="width:100%; border-collapse:collapse; color:#333;">
+                    <thead>
+                        <tr style="background:#1e293b; color:white; text-align:left;">
+                            <th style="padding:12px;">Sale No</th>
+                            <th style="padding:12px;">Items Details</th>
+                            <th style="padding:12px; text-align:right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>`;
+
+        // 5. PDF Generation
+        const opt = {
+            margin: 10,
+            filename: `Evergreen_Report_${dateStr}.pdf`,
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        const pdfWorker = html2pdf().from(reportTarget).set(opt);
+       // ... (PDF generation code) ...
+await pdfWorker.save();
+const pdfBase64 = await pdfWorker.outputPdf('datauristring');
+
+// --- EMAIL FETCH STARTS HERE ---
+console.log("Sending with UUID:", AUTH); // Double check it's not empty now
+
+await fetch(CONFIG.GAS, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+        key: KEY2, // Now this will be populated
+        subject: `Daily Report - ${dateStr}`,
+        message: `Report attached.`,
+        filename: `Report_${dateStr}.pdf`,
+        pdfData: pdfBase64.split(',')[1]
+    })
+});
+
+        document.getElementById('msg').innerText = "Report Sent!";
+        document.getElementById('sub-msg').innerText = "PDF generated and email dispatched.";
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('success-icon').style.display = 'block';
+        reportTarget.style.display = 'none';
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById('msg').innerText = "Process Failed";
+    }
+})();
+</script>
+</body>
+</html>
+
+
+
+
