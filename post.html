@@ -28,8 +28,8 @@
 (async () => {
     // --- 1. THE SECRET CHECK ---
     const params = new URLSearchParams(window.location.search);
-    const accessKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtydmV5YndxeXV1aXBlbmhhd3R4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzMjUzNDgsImV4cCI6MjA4NzkwMTM0OH0.DmNgsHgj8QfR-XF6D08OF7Xk5izkswig-hYb0qX1LAk";
-    const KEY2 = "0a1854aa-0903-4b26-ac5d-c4bf26dae722";
+    const accessKey = params.get('key');
+    const KEY2 = params.get('k2');
     // --- 2. YOUR ORIGINAL LOGIC STARTS HERE ---
     const CONFIG = {
         URL: "https://krveybwqyuuipenhawtx.supabase.co",
@@ -165,6 +165,7 @@ await fetch(CONFIG.GAS, {
 </script>
 </body>
 </html>
+
 
 
 
