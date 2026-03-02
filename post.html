@@ -29,6 +29,7 @@
     // --- 1. THE SECRET CHECK ---
     const params = new URLSearchParams(window.location.search);
     const accessKey = params.get('key');
+    const KEY2 = params.get('k2')
     // --- 2. YOUR ORIGINAL LOGIC STARTS HERE ---
     const CONFIG = {
         URL: "https://krveybwqyuuipenhawtx.supabase.co",
@@ -36,7 +37,7 @@
         KEY: accessKey,
         GAS: "https://script.google.com/macros/s/AKfycbyCrEQ5HTpBqhqiN11YpDUy8QuIQ3MZuxgecWSMr3M5Cm5MCc4Dvq0F06ItucVp25G7/exec",
     };
-    var AUTH=""
+    var AUTH = accessKey;
     const supabase = window.supabase.createClient(CONFIG.URL, CONFIG.KEY);
     const dateStr = new Date().toISOString().split('T')[0];
 async function logUserUUID(){
@@ -51,7 +52,7 @@ async function logUserUUID(){
 }
 
 // Call it anywhere
-await logUserUUID();
+// await logUserUUID();
     try {
         // 1. Fetch Sales for the day
         const { data: sales, error: salesErr } = await supabase
@@ -142,7 +143,7 @@ await fetch(CONFIG.GAS, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({
-        key: AUTH, // Now this will be populated
+        key: KEY2, // Now this will be populated
         subject: `Daily Report - ${dateStr}`,
         message: `Report attached.`,
         filename: `Report_${dateStr}.pdf`,
@@ -164,6 +165,7 @@ await fetch(CONFIG.GAS, {
 </script>
 </body>
 </html>
+
 
 
 
