@@ -2,7 +2,7 @@
 name: Open Website Daily
 on:
   schedule:
-    - cron: '30 13 * * *' # 7:00 PM IST
+    - cron: '06 6 * * *' # 7:00 PM IST
   workflow_dispatch:
 
 jobs:
