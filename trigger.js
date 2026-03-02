@@ -1,25 +1,23 @@
+// Inside trigger.js
 const { chromium } = require('playwright');
 
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  
-  // Use the EXACT names from your YAML env section
-  const key1 = process.env.MY_REPORT_KEY;
-  const key2 = process.env.k2;
-  
-  // Construct the URL with the proper ampersand (&)
-  const url = `https://badmic909.github.io/Inventory/post.html?key=${key1}&k2=${key2}`;
-  
-  console.log("Opening page...");
-  // This helps you see if the URL is being built (it will show as ***)
-  console.log(`Target URL length: ${url.length}`); 
 
-  await page.goto(url);
-  
-  // Give it 45 seconds to finish the Supabase fetch and Email POST
+  // Create the URL object
+  const baseUrl = "https://badmic909.github.io/Inventory/post.html";
+  const myUrl = new URL(baseUrl);
+
+  // Add parameters safely
+  myUrl.searchParams.set('key', process.env.MY_SUPABASE_KEY);
+  myUrl.searchParams.set('k2', process.env.k2);
+
+  console.log("Opening URL...");
+  // This will show the URL length to verify the keys are actually there
+  console.log(`URL built. Length: ${myUrl.toString().length}`); 
+
+  await page.goto(myUrl.toString());
   await page.waitForTimeout(45000); 
-  
   await browser.close();
-  console.log("Done.");
 })();
