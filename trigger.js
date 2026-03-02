@@ -10,8 +10,8 @@ const { chromium } = require('playwright');
   const myUrl = new URL(baseUrl);
 
   // Add parameters safely
-  myUrl.searchParams.set('key', process.env.MY_SUPABASE_KEY);
-  myUrl.searchParams.set('k2', process.env.k2);
+  myUrl.searchParams.set('key', process.env.KEY1);
+  myUrl.searchParams.set('k2', process.env.KEY2);
 
   console.log("Opening URL...");
   // This will show the URL length to verify the keys are actually there
