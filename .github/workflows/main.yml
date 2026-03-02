@@ -1,0 +1,12 @@
+name: Open Website Daily
+on:
+  schedule:
+    - cron: '30 13 * * *' # 7:00 PM IST
+  workflow_dispatch:      # <--- ADD THIS LINE TO ENABLE MANUAL TESTING
+jobs:
+  open_url:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Website
+        run: |
+          curl -L "https://your-site-url.com/daily-dispatch.html"
