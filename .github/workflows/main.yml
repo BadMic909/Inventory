@@ -1,3 +1,4 @@
+
 name: Open Website Daily
 on:
   schedule:
@@ -8,27 +9,17 @@ jobs:
   open_url:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Node.js
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium --with-deps
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install Playwright
         run: npm install playwright
-
-      - name: Open Page and Wait
+      - name: Run Script
         env:
           MY_REPORT_KEY: ${{ secrets.MY_REPORT_KEY }}
-        run: |
-          # This inline node script opens the browser and WAITS
-          node -e "
-          const { chromium } = require('playwright');
-          (async () => {
-            const browser = await chromium.launch();
-            const page = await browser.newPage();
-            const url = 'https://badmic909.github.io/Inventory/post.html?key=' + process.env.MY_REPORT_KEY;
-            console.log('Opening:', url);
-            await page.goto(url);
-            await page.waitForTimeout(45000); // 45 seconds to be safe
-            await browser.close();
-          })();"
+        run: node trigger.js
