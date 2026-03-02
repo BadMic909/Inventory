@@ -1,23 +1,23 @@
-
 name: Open Website Daily
 on:
   schedule:
-    - cron: '*/5 * * * *' # 7:00 PM IST
+    - cron: '30 13 * * *' # Set for 7:00 PM IST
+  workflow_dispatch:      # <--- THIS ADDS THE MANUAL RUN BUTTON
 jobs:
   open_url:
     runs-on: ubuntu-latest
     container: alpine/curl
     steps:
-      - name: Install Playwright Browsers
-        run: npx playwright install chromium --with-deps
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install Playwright
-        run: npm install playwright
+      - name: Install Dependencies
+        run: |
+          npm install playwright
+          npx playwright install chromium --with-deps
       - name: Run Script
         env:
           KEY1: ${{ secrets.MY_REPORT_KEY }}
