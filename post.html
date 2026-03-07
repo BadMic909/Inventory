@@ -68,7 +68,6 @@ async function logUserUUID(){
         if (!sales || sales.length === 0) {
             document.getElementById('msg').innerText = "No Sales Today";
             document.getElementById('loader').style.display = 'none';
-            return;
         }
 
         // 2. Fetch all Stock to match names (Same logic as your dashboard)
@@ -168,6 +167,7 @@ await fetch(CONFIG.GAS, {
 </script>
 </body>
 </html>
+
 
 
 
