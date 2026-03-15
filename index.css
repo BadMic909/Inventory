@@ -166,3 +166,23 @@ button:hover { opacity: 0.8; }
 }
 .itemsContainer { display: flex; flex-direction: column; align-items: center; }
 .invoiceCell { font-weight: bold; color: #2c3e50; }
+/* ================= STOCK EDIT MODE ================= */
+.stockTable { table-layout: fixed; width: 100%; }
+.stockTable th:nth-child(1), .stockTable td:nth-child(1) { width: 50px; }
+.stockTable th:nth-child(2), .stockTable td:nth-child(2) { width: 130px; }
+.stockTable th:nth-child(3), .stockTable td:nth-child(3) { width: 180px; }
+.stockTable th:nth-child(4), .stockTable td:nth-child(4) { width: 70px; }
+.stockTable th:nth-child(5), .stockTable td:nth-child(5) { width: 70px; }
+.stockTable th:nth-child(6), .stockTable td:nth-child(6) { width: 110px; }
+.stockTable th:nth-child(7), .stockTable td:nth-child(7) { width: 90px; }
+.stockTable th:nth-child(8), .stockTable td:nth-child(8) { width: 150px; }
+
+.edit-input {
+  width: 100% !important;
+  padding: 4px 6px;
+  border: 1px solid #ccc !important;
+  border-radius: 4px;
+  background: #f9f9a9 !important;
+  box-sizing: border-box;
+  margin-bottom: 0 !important;
+}
