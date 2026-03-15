@@ -364,25 +364,29 @@ document.addEventListener("DOMContentLoaded", async () => {
         </div>
       </div>
 
-      <div style="text-align:center; margin-top:12px; border-top:1px dashed #333; padding-top:8px; font-size:10px; color:#000000;">
-        <div style="font-weight:bold; color:#000000;">Thank you!</div>
+<div style="text-align:center; margin-top:12px; border-top:1px dashed #333; padding-top:8px; font-size:10px; color:#000000;">
+        <div style="font-weight:bold; color:#000000;">Thank you for shopping with us!</div>
         <div>Evergreen Golf | Premium Golf Equipment</div>
+        <div>Unit no 5, Sevaganapalli Village & Post,</div>
+        <div>Hosur Taluk, Krishnagiri District</div>
+        <div>GST: 33AQQPS0101C1ZD</div>
         <div>www.evergreengolfindia.com</div>
+        <div style="margin-top:20px;">&nbsp;</div>
       </div>
 
     </div>`;
-element.style.cssText = 'width:72mm; position:fixed; top:0; left:0; z-index:-9999; opacity:0;';
+element.style.cssText = 'width:72mm; position:fixed; top:40px; left:0; z-index:-9999; opacity:0; padding-top:10mm;';
 document.body.appendChild(element);
 
 await new Promise(r => setTimeout(r, 300));
-const contentHeightMm = element.offsetHeight * 0.274583 + 3;
+const contentHeightMm = element.offsetHeight * 0.274583 + 15;
   
   const opt = {
-    margin: [2, 4, 2, 4],
+    margin: [8, 4, 4, 4],
     filename: `Invoice_${saleNo}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true, width: 272 },
-    jsPDF: { unit: 'mm', format: [80, contentHeightMm], orientation: 'portrait' }
+    jsPDF: { unit: 'mm', format: [80, 297], orientation: 'portrait' }
   };
 
   html2pdf().from(element.innerHTML).set(opt).save().then(() => {
