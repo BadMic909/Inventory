@@ -19,7 +19,7 @@
   <button id="editToggleBtn">Enable Edit Mode</button>
   <button id="addItemBtn" style="display:none;">Add New Item</button>
   <br>
-  <input type="text" id="searchBox" placeholder="Search by Item Name...">
+  <input type="text" id="searchBox" placeholder="Search by Item Name or Barcode...">
   <div id="stockContainer"></div>
 </div>
 
@@ -130,9 +130,10 @@ addBtn.onclick = () => {
   async function renderTable() {
     container.innerHTML = "";
 
-    let filteredData = stockData.filter(item =>
-      item.Item_Name.toLowerCase().includes(searchBox.value.toLowerCase())
-    );
+  let filteredData = stockData.filter(item =>
+    item.Item_Name.toLowerCase().includes(searchBox.value.toLowerCase()) ||
+    (item.Barcode && item.Barcode.toLowerCase().includes(searchBox.value.toLowerCase()))
+  );
 
     // Sort logic including Unit
     if (currentSortColumn !== -1) {
