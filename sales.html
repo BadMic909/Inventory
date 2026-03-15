@@ -177,7 +177,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <input type="text" class="bc" value="${bc}" placeholder="Barcode" style="width:90px">
       <input type="number" class="qtyInput" value="${qty}" style="width:50px">
       <input type="number" class="pr" value="${pr}" placeholder="Price (incl. GST)" style="width:80px">
-      <small class="gstTag" style="color:#27ae60;font-weight:600;margin-left:4px;"></small>
+      <small class="gstTag" style="color:#27ae60;font-weight:600;margin-left:4px; margin-top:10px"></small>
       <button class="deleteBtn" style="padding:2px 8px;" onclick="this.parentElement.remove(); updateTotalLive(this.closest('tr'))">x</button>
     `;
     target.appendChild(div);
