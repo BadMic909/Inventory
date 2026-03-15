@@ -65,7 +65,32 @@ document.addEventListener("DOMContentLoaded", async () => {
   let stockData = [];
   let currentSortColumn = -1;
   let currentSortDirection = 1;
+let hsnGstMap = {};
 
+async function loadHsnData() {
+  try {
+    const res = await fetch("https://krveybwqyuuipenhawtx.supabase.co/storage/v1/object/public/Pub/hsn4_gst_rates.csv");
+    const text = await res.text();
+    const lines = text.trim().split("\n").slice(1);
+    lines.forEach(line => {
+      // Handle quoted fields with commas inside
+      const cols = [];
+      let current = "";
+      let inQuotes = false;
+      for (let char of line) {
+        if (char === '"') { inQuotes = !inQuotes; }
+        else if (char === ',' && !inQuotes) { cols.push(current); current = ""; }
+        else { current += char; }
+      }
+      cols.push(current);
+      const hsn = cols[0]?.trim();
+      const gst = cols[2]?.trim();
+      if (hsn) hsnGstMap[hsn] = gst || "N/A";
+    });
+  } catch(e) {
+    console.error("Failed to load HSN data", e);
+  }
+}
   // --- LOGOUT ---
   if (logoutBtn) {
     logoutBtn.onclick = async () => {
@@ -95,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (currentSortColumn !== -1) {
       filteredData.sort((a, b) => {
-        let keys = ["ID", "Barcode", "Item_Name", "QTY", "Unit", "MRP"];
+        let keys = ["ID", "Barcode", "Item_Name", "QTY", "Unit", "MRP","HSN"];
         let A = a[keys[currentSortColumn]] ?? "";
         let B = b[keys[currentSortColumn]] ?? "";
         if (typeof A === "number" && typeof B === "number") return (A - B) * currentSortDirection;
@@ -114,6 +139,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <th onclick="sortTable(3)">Qty <span class="sort-indicator"></span></th>
           <th onclick="sortTable(4)">Unit <span class="sort-indicator"></span></th>
           <th onclick="sortTable(5)">Price(₹) <span class="sort-indicator"></span></th>
+          <th onclick="sortTable(6)">HSN <span class="sort-indicator"></span></th>
           ${editMode ? "<th>Actions</th>" : ""}
         </tr>
       </thead>
@@ -122,21 +148,96 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const tbody = table.querySelector("tbody");
 
-    filteredData.forEach(row => {
-      const tr = document.createElement("tr");
-      tr.dataset.id = row.ID;
-      tr.innerHTML = `
-        <td>${row.ID}</td>
-        <td class="edit-cell" data-key="Barcode">${row.Barcode}</td>
-        <td class="edit-cell" data-key="Item_Name">${row.Item_Name}</td>
-        <td class="edit-cell" data-key="QTY">${row.QTY}</td>
-        <td class="edit-cell" data-key="Unit">${row.Unit || 'Pcs'}</td>
-        <td class="edit-cell" data-key="MRP">${row.MRP}</td>
-        ${editMode ? `<td class="actionsCell"><button class="deleteBtn">Delete</button></td>` : ""}
-      `;
-      tbody.appendChild(tr);
-      if (editMode) enableRowEditing(tr);
+ filteredData.forEach(row => {
+  const tr = document.createElement("tr");
+  tr.dataset.id = row.ID;
+
+  if (editMode) {
+    tr.innerHTML = `
+      <td>${row.ID}</td>
+      <td><input class="edit-input" data-key="Barcode" value="${row.Barcode || ''}"></td>
+      <td><input class="edit-input" data-key="Item_Name" value="${row.Item_Name || ''}"></td>
+      <td><input class="edit-input" data-key="QTY" type="text" value="${row.QTY || 0}"></td>
+      <td><input class="edit-input" data-key="Unit" value="${row.Unit || 'Pcs'}"></td>
+      <td><input class="edit-input" data-key="MRP" type="text" value="${row.MRP || 0}"></td>
+      <td>
+  <input class="edit-input" data-key="HSN" value="${row.HSN || ''}" id="hsn_${row.ID}">
+  <small id="gst_${row.ID}" style="color:#27ae60;font-weight:600;">
+    ${row.HSN && hsnGstMap[row.HSN] ? `GST: ${hsnGstMap[row.HSN]}%` : ''}
+  </small>
+</td>
+      <td class="actionsCell">
+        <button class="saveRowBtn">Save</button>
+        <button class="deleteBtn">Delete</button>
+      </td>
+    `;
+
+tr.querySelector(".saveRowBtn").onclick = async () => {
+  const saveBtn = tr.querySelector(".saveRowBtn");
+  const up = {};
+  tr.querySelectorAll(".edit-input").forEach(input => {
+    const k = input.dataset.key;
+    up[k] = (k === 'QTY' || k === 'MRP') ? Number(input.value) : input.value.trim();
+  });
+
+  saveBtn.textContent = "Saving...";
+  saveBtn.disabled = true;
+  saveBtn.style.background = "#f39c12";
+
+  const { error } = await supabase.from("Stock").update(up).eq("ID", tr.dataset.id);
+
+  if (error) {
+    saveBtn.textContent = "Error!";
+    saveBtn.style.background = "#e74c3c";
+    setTimeout(() => {
+      saveBtn.textContent = "Save";
+      saveBtn.disabled = false;
+      saveBtn.style.background = "";
+    }, 2000);
+  } else {
+    saveBtn.textContent = "Saved ✓";
+    saveBtn.style.background = "#27ae60";
+    setTimeout(async () => {
+      await Promise.all([fetchData(), loadHsnData()]);
+      renderTable();
+    }, 800);
+  }
+};
+
+    tr.querySelector(".deleteBtn").onclick = async () => {
+      if (confirm("Delete this item?")) {
+        await supabase.from("Stock").delete().eq("ID", tr.dataset.id);
+        await fetchData(); renderTable();
+      }
+    };
+
+  } else {
+    tr.innerHTML = `
+      <td>${row.ID}</td>
+      <td>${row.Barcode}</td>
+      <td>${row.Item_Name}</td>
+      <td>${row.QTY}</td>
+      <td>${row.Unit || 'Pcs'}</td>
+      <td>${row.MRP}</td>
+      <td>
+  ${row.HSN || ''}
+  ${row.HSN && hsnGstMap[row.HSN] ? `<br><small style="color:#27ae60;font-weight:600;">GST: ${hsnGstMap[row.HSN]}%</small>` : ''}
+</td>
+    `;
+  }
+
+  tbody.appendChild(tr);
+  if (editMode) {
+  const hsnInput = tr.querySelector(`#hsn_${row.ID}`);
+  const gstLabel = tr.querySelector(`#gst_${row.ID}`);
+  if (hsnInput && gstLabel) {
+    hsnInput.addEventListener("input", () => {
+      const val = hsnInput.value.trim();
+      gstLabel.textContent = hsnGstMap[val] ? `GST: ${hsnGstMap[val]}%` : '';
     });
+  }
+}
+});
 
     container.appendChild(table);
     updateSortIndicators();
@@ -178,10 +279,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           row.querySelector(".actionsCell").appendChild(saveBtn);
           saveBtn.onclick = async () => {
             const up = {};
-            row.querySelectorAll(".edit-cell").forEach(c => {
-              const k = c.dataset.key;
-              up[k] = (k === 'QTY' || k === 'MRP') ? Number(c.textContent) : c.textContent.trim();
-            });
+              row.querySelectorAll(".edit-cell").forEach(c => {
+                const k = c.dataset.key;
+                up[k] = (k === 'QTY' || k === 'MRP') ? Number(c.textContent) : c.textContent.trim();
+              });
             await supabase.from("Stock").update(up).eq("ID", row.dataset.id);
             await fetchData(); renderTable();
           };
@@ -208,6 +309,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <td><input type="number" id="nQty" placeholder="0"></td>
       <td><input type="text" id="nUni" value="Pcs"></td>
       <td><input type="number" id="nMrp" placeholder="0"></td>
+      <td><input type="text" id="nHsn" placeholder="HSN"></td>
       <td>
         <button class="saveBtn" id="confirmAdd">Save</button>
         <button class="deleteBtn" onclick="this.closest('tr').remove()">Cancel</button>
@@ -221,7 +323,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         Item_Name: document.getElementById("nNam").value.trim(),
         QTY: parseInt(document.getElementById("nQty").value) || 0,
         Unit: document.getElementById("nUni").value.trim(),
-        MRP: parseFloat(document.getElementById("nMrp").value) || 0
+        MRP: parseFloat(document.getElementById("nMrp").value) || 0,
+        HSN: document.getElementById("nHsn").value.trim()
       };
       if (!payload.Barcode || !payload.Item_Name) {
         alert("Please enter both Barcode and Item Name.");
@@ -238,8 +341,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // --- CSV EXPORT ---
   downloadBtn.onclick = () => {
-    const headers = "ID,Barcode,Item Name,Quantity,Price(INR)\n";
-    const rows = stockData.map(r => `${r.ID},"${r.Barcode}","${r.Item_Name}",${r.QTY},${r.MRP}`).join("\n");
+  const headers = "ID,Barcode,Item Name,Quantity,Price(INR),HSN\n";
+  const rows = stockData.map(r => `${r.ID},"${r.Barcode}","${r.Item_Name}",${r.QTY},${r.MRP},"${r.HSN || ''}"`).join("\n");
     const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
