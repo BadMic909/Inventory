@@ -158,7 +158,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <td class="invoiceCell">₹0</td>
       <td class="action-btns">
         <button class="saveBtn" onclick="saveSale(${id}, this)">Complete Sale</button>
-        <button class="addBtn" style="background:#f39c12" onclick="downloadInvoice(${id}, this)">PDF Invoice</button>
+        <button class="addBtn" style="background:#f39c12" onclick="downloadInvoice(${id}, this)">🧾 Receipt</button>
         <button class="cancelBtn" onclick="location.reload()">Cancel</button>
       </td>
     `;
@@ -274,8 +274,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   // --- DOWNLOAD INVOICE ---
-  window.downloadInvoice = (id, btn) => {
-  const logoBase64 = "PASTE_LOGO_HERE";
+  window.downloadInvoice = async (id, btn) => {
 
   const tr = btn.closest("tr");
   const customer = tr.querySelector(".customerInput").value || "Valued Customer";
@@ -329,7 +328,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     <div style="width:67mm; font-family:'Poppins', sans-serif; color:#000000; font-size:11px; font-weight:bold;">
 
       <div style="text-align:center; border-bottom:1px dashed #333; padding-bottom:8px; margin-bottom:8px;">
-        <img src="${logoBase64}" style="height:50px; display:block; margin:0 auto;">
         <div style="font-weight:bold; font-size:13px; margin-top:4px;">INVOICE #SALE-${saleNo}</div>
         <div style="color:#000000; font-size:10px;">${new Date().toLocaleDateString()}</div>
       </div>
@@ -373,20 +371,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       </div>
 
     </div>`;
-element.style.width = '72mm';
+element.style.cssText = 'width:72mm; position:fixed; top:0; left:0; z-index:-9999; opacity:0;';
 document.body.appendChild(element);
 
-  const contentHeightMm = element.offsetHeight * 0.264583 + 6;
-
+await new Promise(r => setTimeout(r, 300));
+const contentHeightMm = element.offsetHeight * 0.274583 + 3;
+  
   const opt = {
     margin: [2, 4, 2, 4],
+    filename: `Invoice_${saleNo}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true, width: 272 },
-  filename: `Invoice_${saleNo}.pdf`,
-  image: { type: 'jpeg', quality: 0.98 },
-  html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true, width: 272 },
-  jsPDF: { unit: 'mm', format: [80, contentHeightMm], orientation: 'portrait' }
-};
-  html2pdf().from(element).set(opt).save();
+    jsPDF: { unit: 'mm', format: [80, contentHeightMm], orientation: 'portrait' }
+  };
+
+  html2pdf().from(element.innerHTML).set(opt).save().then(() => {
+      document.body.removeChild(element);
+  });
 };
 
   // --- WARNING MODAL ---
