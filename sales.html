@@ -288,9 +288,9 @@ document.getElementById("searchInput").addEventListener("input", function () {
   const saleNo = tr.querySelector(".saleNoInput").value || "N/A";
 
   const paint = prompt("Paid? True/False");
-  const paid = paint && (paint.toLowerCase() === "true" || paint.toLowerCase() === "paid");
-  const Pay = paid ? "Paid" : "Payment Pending";
-  const color = paid ? "#1cc88a" : "#e74c3c";
+  const paid = paint && (paint.toLowerCase() === "false" || paint.toLowerCase() === "not paid");
+  const Pay = paid ? "Payment Pending":"Paid";
+  const color = paid ? "#e74c3c":"#1cc88a";
 
   const items = [...tr.querySelectorAll(".itemRow")].map(r => {
     const bc = r.querySelector(".bc").value.trim();
