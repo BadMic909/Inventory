@@ -122,7 +122,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         const s = stockData.find(x => x.Barcode == i.barcode);
         return `<div>${s ? s.Item_Name : '??'} | ${i.qty || 1} @ ₹${i.price}</div>`;
       }).join("");
-
+// --- SEARCH ---
+document.getElementById("searchInput").addEventListener("input", function () {
+  const query = this.value.toLowerCase().trim();
+  [...tbody.children].forEach(tr => {
+    const customer = tr.children[2]?.textContent.toLowerCase() || "";
+    tr.style.display = customer.includes(query) ? "" : "none";
+  });
+});
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${row.id}</td>
