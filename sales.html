@@ -202,32 +202,43 @@ document.getElementById("searchInput").addEventListener("input", function () {
     const bcInp = div.querySelector(".bc");
     const prInp = div.querySelector(".pr");
     const gstTag = div.querySelector(".gstTag");
+let mrp = parseFloat(pr) || 0; // store original MRP
 
-    function updateGstTag() {
-      const rate = getGstRate(bcInp.value.trim());
-      const price = parseFloat(prInp.value) || 0;
-      if (rate && price) {
-        const gstAmt = price - (price / (1 + rate / 100));
-        gstTag.textContent = `GST(${rate}%): ₹${gstAmt.toFixed(2)}`;
-      } else if (rate) {
-        gstTag.textContent = `GST: ${rate}%`;
-      } else {
-        gstTag.textContent = '';
-      }
-    }
+function updateGstTag() {
+  const rate = getGstRate(bcInp.value.trim());
+  const price = parseFloat(prInp.value) || 0;
+  const discount =mrp- price ;
+
+  let tagHtml = '';
+  if (rate && price) {
+    const gstAmt = price - (price / (1 + rate / 100));
+    tagHtml += `GST(${rate}%): ₹${gstAmt.toFixed(2)}`;
+  } else if (rate) {
+    tagHtml += `GST: ${rate}%`;
+  }
+  if (mrp && discount !== 0) {
+    const discColor = discount < 0 ? "#1cc88a" : "#e74c3c";
+    tagHtml += ` &nbsp;<span style="color:${discColor};">Disc: ₹${discount.toFixed(2)}</span>`;
+  }
+  gstTag.innerHTML = tagHtml;
+}
+
+// update MRP when barcode is scanned
+bcInp.addEventListener("input", () => {
+  const s = stockData.find(x => x.Barcode == bcInp.value.trim());
+  if (s) { prInp.value = s.MRP; mrp = parseFloat(s.MRP) || 0; }
+  updateGstTag();
+  updateTotalLive(div.closest("tr"));
+});
 
     if (bc) updateGstTag();
 
-    [bcInp, div.querySelector(".qtyInput"), prInp].forEach(input => {
-      input.addEventListener("input", () => {
-        if (input === bcInp) {
-          const s = stockData.find(x => x.Barcode == bcInp.value.trim());
-          if (s) prInp.value = s.MRP;
-        }
-        updateGstTag();
-        updateTotalLive(div.closest("tr"));
-      });
-    });
+    [div.querySelector(".qtyInput"), prInp].forEach(input => {
+  input.addEventListener("input", () => {
+    updateGstTag();
+    updateTotalLive(div.closest("tr"));
+  });
+  });
   };
 
   // --- UPDATE TOTAL LIVE ---
@@ -309,34 +320,42 @@ document.getElementById("searchInput").addEventListener("input", function () {
       barcode: bc,
       hsn: s?.HSN || null,
       name: s ? s.Item_Name : bc,
+      mrp: parseFloat(s?.MRP) || 0,   // ← add this
       qty: parseFloat(r.querySelector(".qtyInput").value) || 0,
       price: parseFloat(r.querySelector(".pr").value) || 0
     };
   });
 
-  let grandTotal = 0, totalGst = 0;
+  let grandTotal = 0, totalGst = 0;let totalDiscount = 0;
 
   const rowsHtml = items.map(i => {
-    const lineTotal = i.qty * i.price;
-    grandTotal += lineTotal;
-    const gstRate = i.hsn ? parseFloat(hsnGstMap[String(i.hsn)]) || 0 : 0;
-    const lineGst = lineTotal - (lineTotal / (1 + gstRate / 100));
-    totalGst += lineGst;
+  const lineTotal = i.qty * i.price;
+  grandTotal += lineTotal;
+  const gstRate = i.hsn ? parseFloat(hsnGstMap[String(i.hsn)]) || 0 : 0;
+  const lineGst = lineTotal - (lineTotal / (1 + gstRate / 100));
+  totalGst += lineGst;
 
-    return `
-      <tr style="border-bottom:1px dotted #ddd;">
-        <td style="padding:3px 0; text-align:left;">
-          ${i.name}
-          ${i.hsn ? `<br><span style="font-size:9px;color:#000000;">HSN:${i.hsn}</span>` : ''}
-        </td>
-        <td style="padding:3px 0; text-align:center;">${i.qty}</td>
-        <td style="padding:3px 0; text-align:right;">₹${i.price.toFixed(2)}</td>
-        <td style="padding:3px 0; text-align:right;">
-          ₹${lineTotal.toFixed(2)}
-          ${gstRate ? `<br><span style="font-size:9px;color:#000000;">GST(${gstRate}%):₹${lineGst.toFixed(2)}</span>` : ''}
-        </td>
-      </tr>`;
-  }).join("");  // ← THIS was missing
+  const lineMrp = i.qty * i.mrp;
+  const lineDiscount = lineTotal - lineMrp; // negative = discount given
+  totalDiscount += lineDiscount;
+
+  return `
+    <tr style="border-bottom:1px dotted #ddd;">
+      <td style="padding:3px 0; text-align:left;">
+        ${i.name}
+        ${i.hsn ? `<br><span style="font-size:9px;color:#000000;">HSN:${i.hsn}</span>` : ''}
+      </td>
+      <td style="padding:3px 0; text-align:center;">${i.qty}</td>
+      <td style="padding:3px 0; text-align:right;">
+        ${i.mrp !== i.price ? `<span style="text-decoration:line-through;color:#999;">₹${i.mrp.toFixed(2)}</span><br>` : ''}
+        ₹${i.price.toFixed(2)}
+      </td>
+      <td style="padding:3px 0; text-align:right;">
+        ₹${lineTotal.toFixed(2)}
+        ${gstRate ? `<br><span style="font-size:9px;color:#000000;">GST(${gstRate}%):₹${lineGst.toFixed(2)}</span>` : ''}
+      </td>
+    </tr>`;
+}).join("");  // ← THIS was missing
 
   const subtotal = grandTotal - totalGst;
 
@@ -371,6 +390,11 @@ document.getElementById("searchInput").addEventListener("input", function () {
           <span style="color:#000000;">Subtotal (excl. GST):</span>
           <span>₹${subtotal.toFixed(2)}</span>
         </div>
+        ${totalDiscount !== 0 ? `
+<div style="display:flex; justify-content:space-between; color: '#000000'};">
+  <span>Discount:</span>
+  <span>₹${totalDiscount.toFixed(2)}</span>
+</div>` : ''}
         <div style="display:flex; justify-content:space-between;">
           <span style="color:#000000;">Total GST:</span>
           <span>₹${totalGst.toFixed(2)}</span>
