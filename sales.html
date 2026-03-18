@@ -337,7 +337,7 @@ bcInp.addEventListener("input", () => {
 
   const lineMrp = i.qty * i.mrp;
   const lineDiscount = lineTotal - lineMrp; // negative = discount given
-  totalDiscount += lineDiscount;
+  totalDiscount -= lineDiscount;
 
   return `
     <tr style="border-bottom:1px dotted #ddd;">
