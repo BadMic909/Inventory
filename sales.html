@@ -146,28 +146,30 @@ document.getElementById("searchInput").addEventListener("input", function () {
   }
 
   // --- DELETE SALE ---
-  window.deleteSale = async (id) => {
+window.deleteSale = async (id) => {
+  if (confirm("Delete this sale record?")) {
+    const { data: oldSale } = await supabase.from("Sales").select("*").eq("id", id).single();
+    const oldItems = oldSale ? oldSale.Item_RP : [];
+
+    // NOW insert to SaleEdits (oldSale exists)
     await supabase.from("SaleEdits").insert([{
       sale_no: oldSale.Sale_No,
       customer: oldSale.Customer_Name,
       changes: "Sale deleted",
       action: "DELETE"
     }]);
-    if (confirm("Delete this sale record?")) {
-      const { data: oldSale } = await supabase.from("Sales").select("Item_RP").eq("id", id).single();
-      const oldItems = oldSale ? oldSale.Item_RP : [];
-  
-      for (const oldItem of oldItems) {
-        const { data: cur } = await supabase.from("Stock").select("QTY").eq("Barcode", oldItem.barcode).single();
-        if (cur) {
-          await supabase.from("Stock").update({ QTY: cur.QTY + oldItem.qty }).eq("Barcode", oldItem.barcode);
-        }
+
+    for (const oldItem of oldItems) {
+      const { data: cur } = await supabase.from("Stock").select("QTY").eq("Barcode", oldItem.barcode).single();
+      if (cur) {
+        await supabase.from("Stock").update({ QTY: cur.QTY + oldItem.qty }).eq("Barcode", oldItem.barcode);
       }
-  
-      await supabase.from("Sales").delete().eq("id", id);
-      await fetchData(); renderTable();
     }
-  };
+
+    await supabase.from("Sales").delete().eq("id", id);
+    await fetchData(); renderTable();
+  }
+};
 
   // --- EDIT MODE ---
   window.enterEditMode = (id) => {
