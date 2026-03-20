@@ -195,7 +195,27 @@ tr.querySelector(".saveRowBtn").onclick = async () => {
       saveBtn.style.background = "";
     }, 2000);
   } else {
-    saveBtn.textContent = "Saved ✓";
+// --- CHANGE LOG ---
+    const original = stockData.find(s => s.ID == tr.dataset.id);
+    const trackedFields = ["MRP", "Item_Name", "QTY"];
+    const changeLog = trackedFields
+      .filter(f => {
+        const oldVal = (f === 'QTY' || f === 'MRP') ? Number(original[f]) : (original[f] || "").trim();
+        return oldVal !== up[f];
+      })
+      .map(f => {
+        const oldVal = (f === 'QTY' || f === 'MRP') ? Number(original[f]) : (original[f] || "").trim();
+        return `${f}:(${oldVal}-->${up[f]})`;
+      }).join(", ");
+
+    if (changeLog) {
+      await supabase.from("Edits").insert([{
+        barcode: original.Barcode,
+        changes: changeLog,
+        action: "UPDATE"
+      }]);
+    }
+    // --- END CHANGE LOG ---
     saveBtn.style.background = "#27ae60";
     setTimeout(async () => {
       await Promise.all([fetchData(), loadHsnData()]);
@@ -206,6 +226,11 @@ tr.querySelector(".saveRowBtn").onclick = async () => {
 
     tr.querySelector(".deleteBtn").onclick = async () => {
       if (confirm("Delete this item?")) {
+        await supabase.from("Edits").insert([{
+          barcode: row.Barcode,
+          changes: "Item deleted",
+          action: "DELETE"
+        }]);
         await supabase.from("Stock").delete().eq("ID", tr.dataset.id);
         await fetchData(); renderTable();
       }
@@ -272,21 +297,59 @@ tr.querySelector(".saveRowBtn").onclick = async () => {
       cell.contentEditable = true;
       cell.style.background = "#f9f9a9";
       cell.oninput = () => {
-        if (!row.querySelector(".saveRowBtn")) {
-          const saveBtn = document.createElement("button");
-          saveBtn.textContent = "Save";
-          saveBtn.className = "saveRowBtn";
-          row.querySelector(".actionsCell").appendChild(saveBtn);
-          saveBtn.onclick = async () => {
-            const up = {};
-              row.querySelectorAll(".edit-cell").forEach(c => {
-                const k = c.dataset.key;
-                up[k] = (k === 'QTY' || k === 'MRP') ? Number(c.textContent) : c.textContent.trim();
-              });
-            await supabase.from("Stock").update(up).eq("ID", row.dataset.id);
-            await fetchData(); renderTable();
-          };
-        }
+        tr.querySelector(".saveRowBtn").onclick = async () => {
+  const saveBtn = tr.querySelector(".saveRowBtn");
+  const up = {};
+  tr.querySelectorAll(".edit-input").forEach(input => {
+    const k = input.dataset.key;
+    up[k] = (k === 'QTY' || k === 'MRP') ? Number(input.value) : input.value.trim();
+  });
+
+  saveBtn.textContent = "Saving...";
+  saveBtn.disabled = true;
+  saveBtn.style.background = "#f39c12";
+
+  const { error } = await supabase.from("Stock").update(up).eq("ID", tr.dataset.id);
+
+  if (error) {
+    saveBtn.textContent = "Error!";
+    saveBtn.style.background = "#e74c3c";
+    setTimeout(() => {
+      saveBtn.textContent = "Save";
+      saveBtn.disabled = false;
+      saveBtn.style.background = "";
+    }, 2000);
+  } else {
+    // --- CHANGE LOG ---
+    const original = stockData.find(s => s.ID == tr.dataset.id);
+    const trackedFields = ["MRP", "Item_Name", "QTY"];
+    const changeLog = trackedFields
+      .filter(f => {
+        const oldVal = (f === 'QTY' || f === 'MRP') ? Number(original[f]) : (original[f] || "").trim();
+        return oldVal !== up[f];
+      })
+      .map(f => {
+        const oldVal = (f === 'QTY' || f === 'MRP') ? Number(original[f]) : (original[f] || "").trim();
+        return `${f}:(${oldVal}-->${up[f]})`;
+      }).join(", ");
+
+    if (changeLog) {
+      await supabase.from("Edits").insert([{
+        barcode: original.Barcode,
+        changes: changeLog,
+        action: "UPDATE"
+      }]);
+    }
+    // --- END CHANGE LOG ---
+
+    saveBtn.textContent = "Saved ✓";
+    saveBtn.style.background = "#27ae60";
+    setTimeout(async () => {
+      await Promise.all([fetchData(), loadHsnData()]);
+      renderTable();
+    }, 800);
+  }
+};
       };
     });
 
