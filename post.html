@@ -37,7 +37,7 @@
         URL: "https://krveybwqyuuipenhawtx.supabase.co",
         // ... rest of your config ...
         KEY: accessKey,
-        GAS: "https://script.google.com/macros/s/AKfycbyCrEQ5HTpBqhqiN11YpDUy8QuIQ3MZuxgecWSMr3M5Cm5MCc4Dvq0F06ItucVp25G7/exec",
+        GAS: "https://script.google.com/macros/s/AKfycbyeCWJ5HDUWqCyK8yhrI5VTORqx0Hg20NZAtmGJa6qzTBN2ZXZCqBzR9zvjWET6Sm_F/exec",
     };
     var AUTH = accessKey;
     const supabase = window.supabase.createClient(CONFIG.URL, accessKey);
@@ -72,6 +72,16 @@ async function logUserUUID(){
 
         // 2. Fetch all Stock to match names (Same logic as your dashboard)
         const { data: stockData, error: stockErr } = await supabase.from("Stock").select("*");
+        // Fetch today's edits
+        const { data: editsData } = await supabase
+            .from("Edits")
+            .select("*")
+            .gte("changed_at", `${dateStr}T00:00:00Z`)
+            .lte("changed_at", `${dateStr}T23:59:59Z`);
+
+        const editsText = editsData && editsData.length > 0
+            ? editsData.map(e => `[${e.changed_at}] ${e.action} | Barcode: ${e.barcode} | ${e.changes}`).join("\n")
+            : "No stock edits today.";
         if (stockErr) throw stockErr;
 
         let totalRevenue = 0;
@@ -149,7 +159,9 @@ await fetch(CONFIG.GAS, {
         subject: `Daily Report - ${dateStr}`,
         message: `Report attached.`,
         filename: `Report_${dateStr}.pdf`,
-        pdfData: pdfBase64.split(',')[1]
+        pdfData: pdfBase64.split(',')[1],
+        editsFilename: `Edits_${dateStr}.txt`,   // ADD THIS
+        editsData: editsText     
     })
 });
 
@@ -167,7 +179,6 @@ await fetch(CONFIG.GAS, {
 </script>
 </body>
 </html>
-
 
 
 
