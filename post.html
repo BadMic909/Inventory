@@ -72,17 +72,31 @@ async function logUserUUID(){
 
         // 2. Fetch all Stock to match names (Same logic as your dashboard)
         const { data: stockData, error: stockErr } = await supabase.from("Stock").select("*");
-        // Fetch today's edits
-        const { data: editsData } = await supabase
-            .from("Edits")
-            .select("*")
-            .gte("changed_at", `${dateStr}T00:00:00Z`)
-            .lte("changed_at", `${dateStr}T23:59:59Z`);
-
-        const editsText = editsData && editsData.length > 0
-            ? editsData.map(e => `[${e.changed_at}] ${e.action} | Barcode: ${e.barcode} | ${e.changes}`).join("\n")
-            : "No stock edits today.";
         if (stockErr) throw stockErr;
+        // Fetch today's edits
+        // Fetch today's edits
+const { data: editsData } = await supabase
+    .from("Edits")
+    .select("*")
+    .gte("changed_at", `${dateStr}T00:00:00Z`)
+    .lte("changed_at", `${dateStr}T23:59:59Z`);
+
+const { data: saleEditsData } = await supabase
+    .from("SaleEdits")
+    .select("*")
+    .gte("changed_at", `${dateStr}T00:00:00Z`)
+    .lte("changed_at", `${dateStr}T23:59:59Z`);
+
+const stockEditsText = editsData && editsData.length > 0
+    ? editsData.map(e => `[${e.changed_at}] ${e.action} | Barcode: ${e.barcode} | ${e.changes}`).join("\n")
+    : "No stock edits today.";
+
+const saleEditsText = saleEditsData && saleEditsData.length > 0
+    ? saleEditsData.map(e => `[${e.changed_at}] ${e.action} | Sale No: ${e.sale_no} | Customer: ${e.customer} | ${e.changes}`).join("\n")
+    : "No sale edits today.";
+
+const editsText = `STOCK EDITS:\n${stockEditsText}\n\nSALES EDITS:\n${saleEditsText}`;
+
 
         let totalRevenue = 0;
         let totalItemsCount = 0;
