@@ -147,6 +147,12 @@ document.getElementById("searchInput").addEventListener("input", function () {
 
   // --- DELETE SALE ---
   window.deleteSale = async (id) => {
+    await supabase.from("SaleEdits").insert([{
+      sale_no: oldSale.Sale_No,
+      customer: oldSale.Customer_Name,
+      changes: "Sale deleted",
+      action: "DELETE"
+    }]);
     if (confirm("Delete this sale record?")) {
       const { data: oldSale } = await supabase.from("Sales").select("Item_RP").eq("id", id).single();
       const oldItems = oldSale ? oldSale.Item_RP : [];
@@ -296,7 +302,26 @@ bcInp.addEventListener("input", () => {
       Item_RP: newItems,
       Invoice: total
     }).eq("id", id);
-
+    const oldSale2 = salesData.find(s => s.id == id);
+    const changeParts = [];
+    
+    if (Number(tr.querySelector(".saleNoInput").value) !== oldSale2.Sale_No)
+      changeParts.push(`Sale_No:(${oldSale2.Sale_No}-->${tr.querySelector(".saleNoInput").value})`);
+    
+    if (tr.querySelector(".customerInput").value !== oldSale2.Customer_Name)
+      changeParts.push(`Customer:(${oldSale2.Customer_Name}-->${tr.querySelector(".customerInput").value})`);
+    
+    if (total !== oldSale2.Invoice)
+      changeParts.push(`Invoice:(${oldSale2.Invoice}-->${total})`);
+    
+    if (changeParts.length > 0) {
+      await supabase.from("SaleEdits").insert([{
+        sale_no: oldSale2.Sale_No,
+        customer: oldSale2.Customer_Name,
+        changes: changeParts.join(", "),
+        action: "UPDATE"
+      }]);
+    }
     alert("Sale Updated & Stock Adjusted!");
     await fetchData(); renderTable();
   };
