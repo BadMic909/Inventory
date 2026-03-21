@@ -418,6 +418,8 @@ document.getElementById("saveAllBtn").onclick = async () => {
     btn.textContent = "Save All";
     btn.disabled = false;
   } else {
+    btn.textContent = "Save All";  // ← reset BEFORE re-render
+    btn.disabled = false;
     await fetchData(); renderTable();
   }
 };
