@@ -18,6 +18,7 @@
   <h1>Stock Overview</h1>
   <button id="editToggleBtn">Enable Edit Mode</button>
   <button id="addItemBtn" style="display:none;">Add New Item</button>
+  <button id="saveAllBtn" style="display:none;">Save All</button>
   <br>
   <div class="search-row">
     <input type="text" id="searchName" placeholder="Search by Item Name...">
@@ -362,9 +363,11 @@ tr.querySelector(".saveRowBtn").onclick = async () => {
   }
 
   // --- ADD ITEM ---
-  addBtn.onclick = () => {
+  // --- ADD ITEM ---
+addBtn.onclick = () => {
   const tbody = container.querySelector("table tbody");
   const tr = document.createElement("tr");
+  tr.classList.add("pendingRow");
   tr.innerHTML = `
     <td>New</td>
     <td><input type="text" class="nBar" placeholder="Barcode"></td>
@@ -374,34 +377,49 @@ tr.querySelector(".saveRowBtn").onclick = async () => {
     <td><input type="number" class="nMrp" placeholder="0"></td>
     <td><input type="text" class="nHsn" placeholder="HSN"></td>
     <td>
-      <button class="saveBtn confirmAdd">Save</button>
       <button class="deleteBtn">Cancel</button>
     </td>
   `;
   tbody.prepend(tr);
-
   tr.querySelector(".deleteBtn").onclick = () => tr.remove();
+};
 
-  tr.querySelector(".confirmAdd").onclick = async () => {
-    const payload = {
-      Barcode: tr.querySelector(".nBar").value.trim(),
-      Item_Name: tr.querySelector(".nNam").value.trim(),
+// --- SAVE ALL PENDING ---
+document.getElementById("saveAllBtn").onclick = async () => {
+  const pendingRows = container.querySelectorAll(".pendingRow");
+  if (!pendingRows.length) return;
+
+  const payloads = [];
+  let valid = true;
+
+  pendingRows.forEach(tr => {
+    const barcode = tr.querySelector(".nBar").value.trim();
+    const name = tr.querySelector(".nNam").value.trim();
+    if (!barcode || !name) { valid = false; return; }
+    payloads.push({
+      Barcode: barcode,
+      Item_Name: name,
       QTY: parseInt(tr.querySelector(".nQty").value) || 0,
       Unit: tr.querySelector(".nUni").value.trim(),
       MRP: parseFloat(tr.querySelector(".nMrp").value) || 0,
       HSN: tr.querySelector(".nHsn").value.trim()
-    };
-    if (!payload.Barcode || !payload.Item_Name) {
-      alert("Please enter both Barcode and Item Name.");
-      return;
-    }
-    const { error } = await supabase.from("Stock").insert([payload]);
-    if (error) {
-      alert("Error adding item: " + error.message);
-    } else {
-      await fetchData(); renderTable();
-    }
-  };
+    });
+  });
+
+  if (!valid) { alert("Please fill in Barcode and Item Name for all rows."); return; }
+
+  const btn = document.getElementById("saveAllBtn");
+  btn.textContent = "Saving...";
+  btn.disabled = true;
+
+  const { error } = await supabase.from("Stock").insert(payloads);
+  if (error) {
+    alert("Error saving items: " + error.message);
+    btn.textContent = "Save All";
+    btn.disabled = false;
+  } else {
+    await fetchData(); renderTable();
+  }
 };
 
   // --- CSV EXPORT ---
@@ -422,6 +440,7 @@ tr.querySelector(".saveRowBtn").onclick = async () => {
     editMode = !editMode;
     editBtn.textContent = editMode ? "Disable Edit Mode" : "Enable Edit Mode";
     addBtn.style.display = editMode ? "inline-block" : "none";
+    document.getElementById("saveAllBtn").style.display = editMode ? "inline-block" : "none";
     renderTable();
   };
 
