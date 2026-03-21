@@ -451,7 +451,7 @@ document.getElementById("saveAllBtn").onclick = async () => {
   searchBarcode.oninput = renderTable;
 
   // --- INIT ---
-  await fetchData();
+  await Promise.all([fetchData(), loadHsnData()]);
   renderTable();
 });
 </script>
