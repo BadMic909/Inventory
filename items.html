@@ -363,44 +363,46 @@ tr.querySelector(".saveRowBtn").onclick = async () => {
 
   // --- ADD ITEM ---
   addBtn.onclick = () => {
-    const tbody = container.querySelector("table tbody");
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>New</td>
-      <td><input type="text" id="nBar" placeholder="Barcode"></td>
-      <td><input type="text" id="nNam" placeholder="Item Name"></td>
-      <td><input type="number" id="nQty" placeholder="0"></td>
-      <td><input type="text" id="nUni" value="Pcs"></td>
-      <td><input type="number" id="nMrp" placeholder="0"></td>
-      <td><input type="text" id="nHsn" placeholder="HSN"></td>
-      <td>
-        <button class="saveBtn" id="confirmAdd">Save</button>
-        <button class="deleteBtn" onclick="this.closest('tr').remove()">Cancel</button>
-      </td>
-    `;
-    tbody.prepend(tr);
+  const tbody = container.querySelector("table tbody");
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>New</td>
+    <td><input type="text" class="nBar" placeholder="Barcode"></td>
+    <td><input type="text" class="nNam" placeholder="Item Name"></td>
+    <td><input type="number" class="nQty" placeholder="0"></td>
+    <td><input type="text" class="nUni" value="Pcs"></td>
+    <td><input type="number" class="nMrp" placeholder="0"></td>
+    <td><input type="text" class="nHsn" placeholder="HSN"></td>
+    <td>
+      <button class="saveBtn confirmAdd">Save</button>
+      <button class="deleteBtn">Cancel</button>
+    </td>
+  `;
+  tbody.prepend(tr);
 
-    document.getElementById("confirmAdd").onclick = async () => {
-      const payload = {
-        Barcode: document.getElementById("nBar").value.trim(),
-        Item_Name: document.getElementById("nNam").value.trim(),
-        QTY: parseInt(document.getElementById("nQty").value) || 0,
-        Unit: document.getElementById("nUni").value.trim(),
-        MRP: parseFloat(document.getElementById("nMrp").value) || 0,
-        HSN: document.getElementById("nHsn").value.trim()
-      };
-      if (!payload.Barcode || !payload.Item_Name) {
-        alert("Please enter both Barcode and Item Name.");
-        return;
-      }
-      const { error } = await supabase.from("Stock").insert([payload]);
-      if (error) {
-        alert("Error adding item: " + error.message);
-      } else {
-        await fetchData(); renderTable();
-      }
+  tr.querySelector(".deleteBtn").onclick = () => tr.remove();
+
+  tr.querySelector(".confirmAdd").onclick = async () => {
+    const payload = {
+      Barcode: tr.querySelector(".nBar").value.trim(),
+      Item_Name: tr.querySelector(".nNam").value.trim(),
+      QTY: parseInt(tr.querySelector(".nQty").value) || 0,
+      Unit: tr.querySelector(".nUni").value.trim(),
+      MRP: parseFloat(tr.querySelector(".nMrp").value) || 0,
+      HSN: tr.querySelector(".nHsn").value.trim()
     };
+    if (!payload.Barcode || !payload.Item_Name) {
+      alert("Please enter both Barcode and Item Name.");
+      return;
+    }
+    const { error } = await supabase.from("Stock").insert([payload]);
+    if (error) {
+      alert("Error adding item: " + error.message);
+    } else {
+      await fetchData(); renderTable();
+    }
   };
+};
 
   // --- CSV EXPORT ---
   downloadBtn.onclick = () => {
