@@ -158,7 +158,7 @@ async function loadHsnData() {
       <td>${row.ID}</td>
       <td><input class="edit-input" data-key="Barcode" value="${row.Barcode || ''}"></td>
       <td><input class="edit-input" data-key="Item_Name" value="${row.Item_Name || ''}"></td>
-      <td><input class="edit-input" data-key="QTY" type="text" value="${row.QTY || 0}"></td>
+      <td><input class="edit-input" data-key="QTY" type="number" step="0.01" value="${row.QTY || 0}"></td>
       <td><input class="edit-input" data-key="Unit" value="${row.Unit || 'Pcs'}"></td>
       <td><input class="edit-input" data-key="MRP" type="text" value="${row.MRP || 0}"></td>
       <td>
@@ -372,7 +372,7 @@ addBtn.onclick = () => {
     <td>New</td>
     <td><input type="text" class="nBar" placeholder="Barcode"></td>
     <td><input type="text" class="nNam" placeholder="Item Name"></td>
-    <td><input type="number" class="nQty" placeholder="0"></td>
+    <td><input type="number" step="0.01" id="nQty" placeholder="0"></td>
     <td><input type="text" class="nUni" value="Pcs"></td>
     <td><input type="number" class="nMrp" placeholder="0"></td>
     <td><input type="text" class="nHsn" placeholder="HSN"></td>
@@ -399,7 +399,7 @@ document.getElementById("saveAllBtn").onclick = async () => {
     payloads.push({
       Barcode: barcode,
       Item_Name: name,
-      QTY: parseInt(tr.querySelector(".nQty").value) || 0,
+      QTY: parseFloat(tr.querySelector(".nQty").value) || 0,
       Unit: tr.querySelector(".nUni").value.trim(),
       MRP: parseFloat(tr.querySelector(".nMrp").value) || 0,
       HSN: tr.querySelector(".nHsn").value.trim()
