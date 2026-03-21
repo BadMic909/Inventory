@@ -427,7 +427,7 @@ document.getElementById("saveAllBtn").onclick = async () => {
   // --- CSV EXPORT ---
   downloadBtn.onclick = () => {
   const headers = "ID,Barcode,Item Name,Quantity,Price(INR),HSN\n";
-  const rows = stockData.map(r => `${r.ID},"${r.Barcode}","${r.Item_Name}",${r.QTY},${r.MRP},"${r.HSN || ''}"`).join("\n");
+  const rows = stockData.map(r => `${r.ID},"=""${r.Barcode}""","${r.Item_Name}",${r.QTY},${r.MRP},"${r.HSN || ''}"`).join("\n");
     const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
