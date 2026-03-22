@@ -264,7 +264,7 @@ bcInp.addEventListener("input", () => {
     const tr = btn.closest("tr");
     const newItems = [...tr.querySelectorAll(".itemRow")].map(r => ({
       barcode: r.querySelector(".bc").value.trim(),
-      qty: parseInt(r.querySelector(".qtyInput").value) || 0,
+      qty: parseFloat(r.querySelector(".qtyInput").value) || 0,
       price: parseFloat(r.querySelector(".pr").value) || 0
     }));
 
