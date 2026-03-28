@@ -212,6 +212,7 @@ tr.querySelector(".saveRowBtn").onclick = async () => {
     if (changeLog) {
       await supabase.from("Edits").insert([{
         barcode: original.Barcode,
+        item_name: up.Item_Name || original.Item_Name,
         changes: changeLog,
         action: "UPDATE"
       }]);
@@ -227,11 +228,12 @@ tr.querySelector(".saveRowBtn").onclick = async () => {
 
     tr.querySelector(".deleteBtn").onclick = async () => {
       if (confirm("Delete this item?")) {
-        await supabase.from("Edits").insert([{
-          barcode: row.Barcode,
-          changes: "Item deleted",
-          action: "DELETE"
-        }]);
+      await supabase.from("Edits").insert([{
+        barcode: row.Barcode,
+        item_name: row.Item_Name,
+        changes: "Item deleted",
+        action: "DELETE"
+      }]);
         await supabase.from("Stock").delete().eq("ID", tr.dataset.id);
         await fetchData(); renderTable();
       }
@@ -337,6 +339,7 @@ tr.querySelector(".saveRowBtn").onclick = async () => {
     if (changeLog) {
       await supabase.from("Edits").insert([{
         barcode: original.Barcode,
+        item_name: up.Item_Name || original.Item_Name,
         changes: changeLog,
         action: "UPDATE"
       }]);
