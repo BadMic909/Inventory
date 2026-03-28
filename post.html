@@ -88,7 +88,7 @@ const { data: saleEditsData } = await supabase
     .lte("changed_at", `${dateStr}T23:59:59Z`);
 
 const stockEditsText = editsData && editsData.length > 0
-    ? editsData.map(e => `[${e.changed_at}] ${e.action} | Barcode: ${e.barcode} | ${e.changes}`).join("\n")
+    ? editsData.map(e => `[${e.changed_at}] ${e.action} | Barcode: ${e.barcode} | Item: ${e.item_name || 'N/A'} | ${e.changes}`).join("\n")
     : "No stock edits today.";
 
 const saleEditsText = saleEditsData && saleEditsData.length > 0
