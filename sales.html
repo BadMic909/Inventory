@@ -123,13 +123,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         return `<div>${s ? s.Item_Name : '??'} | ${i.qty || 1} @ ₹${i.price}</div>`;
       }).join("");
 // --- SEARCH ---
-document.getElementById("searchInput").addEventListener("input", function () {
-  const query = this.value.toLowerCase().trim();
-  [...tbody.children].forEach(tr => {
-    const customer = tr.children[2]?.textContent.toLowerCase() || "";
-    tr.style.display = customer.includes(query) ? "" : "none";
-  });
-});
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${row.id}</td>
@@ -144,6 +137,13 @@ document.getElementById("searchInput").addEventListener("input", function () {
       tbody.appendChild(tr);
     });
   }
+  document.getElementById("searchInput").addEventListener("input", function () {
+  const query = this.value.toLowerCase().trim();
+  [...tbody.children].forEach(tr => {
+    const customer = tr.children[2]?.textContent.toLowerCase() || "";
+    tr.style.display = customer.includes(query) ? "" : "none";
+  });
+});
 
   // --- DELETE SALE ---
 window.deleteSale = async (id) => {
@@ -274,7 +274,8 @@ bcInp.addEventListener("input", () => {
     for (const newItem of newItems) {
       const s = stockData.find(x => x.Barcode == newItem.barcode);
       const oldQty = (oldItems.find(oi => oi.barcode === newItem.barcode) || {}).qty || 0;
-      const effectiveStock = (s ? s.QTY : 0) + oldQty;
+      const { data: liveStock } = await supabase.from("Stock").select("QTY").eq("Barcode", newItem.barcode).single();
+      const effectiveStock = (liveStock ? liveStock.QTY : 0) + oldQty;
       if (!s || effectiveStock < newItem.qty) {
         showWarning(`Item: ${s ? s.Item_Name : newItem.barcode}<br>Available: ${effectiveStock} | Req: ${newItem.qty}`);
         return;
