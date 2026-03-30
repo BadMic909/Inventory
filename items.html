@@ -416,15 +416,24 @@ document.getElementById("saveAllBtn").onclick = async () => {
   btn.disabled = true;
 
   const { error } = await supabase.from("Stock").insert(payloads);
-  if (error) {
-    alert("Error saving items: " + error.message);
-    btn.textContent = "Save All";
-    btn.disabled = false;
-  } else {
-    btn.textContent = "Save All";  // ← reset BEFORE re-render
-    btn.disabled = false;
-    await fetchData(); renderTable();
-  }
+    if (error) {
+      alert("Error saving items: " + error.message);
+      btn.textContent = "Save All";
+      btn.disabled = false;
+    } else {
+      // --- ADD LOG ---
+      const editLogs = payloads.map(p => ({
+        barcode: p.Barcode,
+        item_name: p.Item_Name,
+        changes: `QTY:(${p.QTY}), MRP:(${p.MRP}), Unit:(${p.Unit}), HSN:(${p.HSN})`,
+        action: "ADD"
+      }));
+      await supabase.from("Edits").insert(editLogs);
+      // --- END ADD LOG ---
+      btn.textContent = "Save All";
+      btn.disabled = false;
+      await fetchData(); renderTable();
+    }
 };
 
   // --- CSV EXPORT ---
