@@ -285,17 +285,26 @@ bcInp.addEventListener("input", () => {
       }
     }
 
-    for (const oldItem of oldItems) {
-      const s = stockData.find(x => x.Barcode == oldItem.barcode);
-      if (s) {
-        const { data: cur } = await supabase.from("Stock").select("QTY").eq("Barcode", oldItem.barcode).single();
-        await supabase.from("Stock").update({ QTY: cur.QTY + oldItem.qty }).eq("Barcode", oldItem.barcode);
-      }
-    }
-    for (const newItem of newItems) {
-      const { data: cur } = await supabase.from("Stock").select("QTY").eq("Barcode", newItem.barcode).single();
-      await supabase.from("Stock").update({ QTY: cur.QTY - newItem.qty }).eq("Barcode", newItem.barcode);
-    }
+// Aggregate old items to restore
+const restoreMap = {};
+for (const oi of oldItems) {
+  restoreMap[oi.barcode] = (restoreMap[oi.barcode] || 0) + oi.qty;
+}
+
+// Aggregate new items to deduct
+const deductMap = {};
+for (const ni of newItems) {
+  deductMap[ni.barcode] = (deductMap[ni.barcode] || 0) + ni.qty;
+}
+
+// Net change per barcode: positive = restore, negative = deduct
+const allBarcodes = new Set([...Object.keys(restoreMap), ...Object.keys(deductMap)]);
+for (const bc of allBarcodes) {
+  const net = (restoreMap[bc] || 0) - (deductMap[bc] || 0);
+  if (net === 0) continue;
+  const { data: cur } = await supabase.from("Stock").select("QTY").eq("Barcode", bc).single();
+  await supabase.from("Stock").update({ QTY: cur.QTY + net }).eq("Barcode", bc);
+}
 
     const total = newItems.reduce((a, b) => a + b.price * b.qty, 0);
     await supabase.from("Sales").update({
