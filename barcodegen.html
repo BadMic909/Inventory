@@ -6,6 +6,26 @@
 <title>Junction Restaurant – Gunjur, Whitefield, Bangalore</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
+  html {
+  font-size: 16px; /* Base size */
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+img, video, canvas {
+  max-width: 100%;
+  height: auto;
+}
+.hero-title {
+  /* Min size: 2.5rem, Fluid size: 8vw, Max size: 7rem */
+  font-size: clamp(2.5rem, 8vw, 7rem); 
+}
+
+.section-title {
+  font-size: clamp(1.8rem, 5vw, 3.5rem);
+}
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
@@ -154,7 +174,26 @@
     font-weight: 300; line-height: 1.15; color: var(--dark);
   }
   .section-title em { font-style: italic; color: var(--spice); }
-
+.about-inner, .menu-inner, .experience-inner, .contact-inner {
+  width: 90%;       /* Takes up 90% of the screen on mobile */
+  max-width: 1100px; /* Won't go over 1100px on desktop */
+  margin: 0 auto;    /* Keeps it centered */
+}
+.menu-grid, .exp-grid {
+  display: grid;
+  /* Columns will be at least 280px. If there's no room, they stack. */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+  gap: 1.5rem;
+  width: 100%;
+}
+.hero {
+  min-height: 100vh; /* Takes full height of any screen */
+  width: 100%;
+  padding: 80px 5%; /* Top padding for the nav, side padding for breathability */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
   /* ── ABOUT ── */
   .about { background: var(--cream); }
   .about-inner {
