@@ -1,71 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <title>Login - Evergreen Golf</title>
-  <link rel="stylesheet" href="./index.css">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Evergreen Golf</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  
+
   <style>
-    /* CSS JUST FOR LOGIN PAGE */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
       display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      padding: 0;
+      background: #0d2b1f;
+      overflow: hidden;
     }
 
-    /* Override the mainContent margin from index.css */
-    #mainContent.login-box {
-      margin: 0;
-      padding: 40px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
-    }
-
-    .login-box h1 {
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 800;
-      color: #2c3e50;
-      margin-bottom: 30px;
-    }
-
-    .form-group {
+    /* LEFT PANEL */
+    .left-panel {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      justify-content: center;
+      padding: 60px;
+      position: relative;
+      overflow: hidden;
     }
 
-    .form-group input {
-      width: 100% !important; /* Force full width inside the box */
-      margin: 0 !important;
-      padding: 12px;
+    .left-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 48px 48px;
     }
+
+    .left-panel::after {
+      content: '';
+      position: absolute;
+      bottom: -120px;
+      left: -120px;
+      width: 480px;
+      height: 480px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(46,125,82,.35) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .brand { position: relative; z-index: 1; }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: #c9a84c;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .brand-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: #f5f0e8;
+      letter-spacing: .3px;
+    }
+    .brand-name span { color: #c9a84c; }
+
+    .hero-text {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 4vw, 52px);
+      line-height: 1.18;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    .hero-text em { font-style: normal; color: #c9a84c; }
+
+    .hero-sub {
+      font-size: 15px;
+      color: rgba(255,255,255,.5);
+      line-height: 1.7;
+      max-width: 380px;
+    }
+
+    .dots {
+      display: flex;
+      gap: 8px;
+      margin-top: 48px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.2);
+    }
+    .dot.active { background: #c9a84c; width: 24px; border-radius: 4px; }
+
+    /* RIGHT PANEL */
+    .right-panel {
+      width: 460px;
+      flex-shrink: 0;
+      background: #f7f8f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .login-card h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      color: #0d2b1f;
+      margin-bottom: 6px;
+    }
+
+    .login-card p.subtitle {
+      font-size: 14px;
+      color: #6b7c74;
+      margin-bottom: 36px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1a2420;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 13px 16px;
+      border: 1.5px solid #e2e8e4;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: #1a2420;
+      background: #fff;
+      outline: none;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .field input:focus {
+      border-color: #2e7d52;
+      box-shadow: 0 0 0 3px rgba(46,125,82,.12);
+    }
+    .field input::placeholder { color: #b0bdb8; }
 
     .login-btn {
-      background: #3498db;
-      color: white;
-      font-size: 16px;
-      padding: 12px;
-      margin-top: 10px;
+      width: 100%;
+      padding: 14px;
+      margin-top: 8px;
+      background: #0d2b1f;
+      color: #fff;
       border: none;
-      transition: background 0.3s;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: .3px;
+      transition: background .18s, transform .14s, box-shadow .18s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
-
     .login-btn:hover {
-      background: #2980b9;
+      background: #1a4a32;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(13,43,31,.3);
     }
+    .login-btn:active { transform: translateY(0); }
+    .login-btn:disabled { opacity: .7; cursor: not-allowed; transform: none; }
+
+    .arrow { transition: transform .18s; }
+    .login-btn:hover .arrow { transform: translateX(4px); }
 
     #output {
-      margin-top: 15px;
-      font-size: 14px;
-      color: #e74c3c;
-      font-weight: 600;
+      margin-top: 16px;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      min-height: 20px;
+      color: #c0392b;
     }
+    #output.success { color: #1a7a4a; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e2e8e4;
+      margin: 28px 0 20px;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: #b0bdb8;
+    }
+
+    /* MOBILE */
+    @media (max-width: 720px) {
+      body { flex-direction: column; overflow: auto; }
+
+      .left-panel {
+        padding: 40px 28px 48px;
+        flex: none;
+        min-height: 240px;
+      }
+      .hero-text { font-size: 28px; }
+      .hero-sub, .dots { display: none; }
+
+      .right-panel {
+        width: 100%;
+        padding: 36px 24px 52px;
+        border-radius: 24px 24px 0 0;
+        margin-top: -24px;
+      }
+    }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .brand     { animation: fadeUp .35s .1s ease both; }
+    .hero-text { animation: fadeUp .35s .2s ease both; }
+    .hero-sub  { animation: fadeUp .35s .3s ease both; }
+    .login-card { animation: fadeUp .4s ease both; }
   </style>
 
   <script defer>
@@ -73,46 +259,97 @@
       const SUPABASE_URL = "https://krveybwqyuuipenhawtx.supabase.co";
       const SUPABASE_ANON_KEY = "sb_publishable_5nif9Qruk9n0ChTqgdtoIQ_g2YHVbao";
       const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        window.location.href = "./items.html";
-        return;
-      }
 
-      window.login = async function login() {
-        const email = document.getElementById("emailInput").value.trim();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) { window.location.href = "./items.html"; return; }
+
+      // Enter key support
+      ["emailInput", "passInput"].forEach(id => {
+        document.getElementById(id).addEventListener("keydown", e => {
+          if (e.key === "Enter") login();
+        });
+      });
+
+      window.login = async function () {
+        const email    = document.getElementById("emailInput").value.trim();
         const password = document.getElementById("passInput").value.trim();
-        const output = document.getElementById("output");
+        const output   = document.getElementById("output");
+        const btn      = document.getElementById("loginBtn");
+
+        output.className = "";
+        output.textContent = "";
 
         if (!email || !password) {
           output.textContent = "Please fill in all fields.";
           return;
         }
 
+        btn.disabled = true;
+        btn.innerHTML = `Signing in…`;
+
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (error) {
           output.textContent = error.message;
+          btn.disabled = false;
+          btn.innerHTML = `Sign In <span class="arrow">→</span>`;
         } else {
-          output.style.color = "#2ecc71";
-          output.textContent = "Success! Redirecting...";
+          output.className = "success";
+          output.textContent = "Success! Redirecting…";
           window.location.href = "./items.html";
         }
       };
     });
   </script>
 </head>
-
 <body>
-  <div id="mainContent" class="login-box">
-    <h1>MyShop Login</h1>
 
-    <div class="form-group">
-      <input id="emailInput" type="email" placeholder="Email">
-      <input id="passInput" type="password" placeholder="Password">
-      <button class="login-btn" onclick="login()">Login</button>
-      <p id="output"></p>
+  <div class="left-panel">
+    <div class="brand">
+      <div class="brand-badge">
+        <div class="brand-icon">⛳</div>
+        <div class="brand-name">Evergreen <span>Golf</span></div>
+      </div>
+      <div class="hero-text">
+        Premium Golf.<br>
+        <em>Managed Simply.</em>
+      </div>
+      <p class="hero-sub">
+        Your complete inventory and sales platform for Evergreen Golf. Track stock, record sales, and generate receipts — all in one place.
+      </p>
+      <div class="dots">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
     </div>
   </div>
+
+  <div class="right-panel">
+    <div class="login-card">
+      <h2>Welcome back</h2>
+      <p class="subtitle">Sign in to your account to continue</p>
+
+      <div class="field">
+        <label>Email</label>
+        <input id="emailInput" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <input id="passInput" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <button id="loginBtn" class="login-btn" onclick="login()">
+        Sign In <span class="arrow">→</span>
+      </button>
+
+      <p id="output"></p>
+
+      <hr class="divider">
+      <p class="footer-note">Evergreen Golf Inventory Management System</p>
+    </div>
+  </div>
+
 </body>
+</html>
