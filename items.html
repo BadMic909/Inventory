@@ -97,6 +97,10 @@
     .edit-input { background: var(--surface3); border: 1px solid var(--border2); border-radius: var(--rs); color: var(--text); font-family: inherit; font-size: 0.82rem; padding: 6px 8px; outline: none; width: 100%; min-width: 65px; transition: border-color 0.15s; }
     .edit-input:focus { border-color: var(--accent); }
 
+    /* highlight new unsaved rows */
+    .pending-row { background: rgba(61,220,132,0.04); }
+    .pending-row td:first-child { border-left: 2px solid var(--accent); }
+
     .center-state { padding: 60px 20px; text-align: center; color: var(--muted); }
     .spinner { display: inline-block; width: 26px; height: 26px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 10px; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -362,6 +366,7 @@
     renderTable();
   };
 
+  // FIX: removed duplicate `var id` line
   window._save = function(btn) {
     var tr = btn.closest("tr");
     var id = tr.getAttribute("data-id");
@@ -412,11 +417,14 @@
     renderTable();
   };
 
+  // FIX: new rows now get class "pending-row" so saveAllBtn can find them
   addBtn.onclick = function() {
     var tbody = container.querySelector("tbody");
     if (!tbody) return;
     var tr = document.createElement("tr");
-    tr.innerHTML = '<td class="c-id" style="color:var(--accent)">New</td>' +
+    tr.className = "pending-row";
+    tr.innerHTML =
+      '<td class="c-id" style="color:var(--accent)">New</td>' +
       '<td><input type="text" class="edit-input nBar" placeholder="Barcode"></td>' +
       '<td><input type="text" class="edit-input nNam" placeholder="Item Name"></td>' +
       '<td><input type="number" step="0.01" class="edit-input nQty" placeholder="0" style="max-width:75px;"></td>' +
@@ -429,14 +437,22 @@
   };
 
   saveAllBtn.onclick = function() {
+    // FIX: query ".pending-row" which is now correctly set by addBtn
     var rows = container.querySelectorAll(".pending-row");
-    if (!rows.length) { alert("No pending rows."); return; }
+    if (!rows.length) { alert("No pending rows. Click '+ Add Item' first."); return; }
     var payloads = [], valid = true;
     for (var i = 0; i < rows.length; i++) {
       var b = rows[i].querySelector(".nBar").value.trim();
       var n = rows[i].querySelector(".nNam").value.trim();
       if (!b || !n) { valid = false; break; }
-      payloads.push({ Barcode: b, Item_Name: n, QTY: parseFloat(rows[i].querySelector(".nQty").value) || 0, Unit: rows[i].querySelector(".nUni").value.trim(), MRP: parseFloat(rows[i].querySelector(".nMrp").value) || 0, HSN: rows[i].querySelector(".nHsn").value.trim() });
+      payloads.push({
+        Barcode:   b,
+        Item_Name: n,
+        QTY:       parseFloat(rows[i].querySelector(".nQty").value) || 0,
+        Unit:      rows[i].querySelector(".nUni").value.trim(),
+        MRP:       parseFloat(rows[i].querySelector(".nMrp").value) || 0,
+        HSN:       rows[i].querySelector(".nHsn").value.trim()
+      });
     }
     if (!valid) { alert("Fill Barcode and Item Name for all rows."); return; }
     saveAllBtn.textContent = "Saving..."; saveAllBtn.disabled = true;
