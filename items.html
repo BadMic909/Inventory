@@ -1,471 +1,471 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Stock</title>
-  <link rel="stylesheet" href="./index.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock — Evergreen Golf</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    th { cursor: pointer; user-select: none; }
-    .sort-indicator { font-size: 12px; margin-left: 6px; opacity: 0.6; }
-    .search-row { display: flex; gap: 10px; margin: 10px 0; }
-    .search-row input { padding: 8px; width: 250px; border-radius: 6px; border: 1px solid #ccc; }
-    .saveRowBtn { background: #27ae60; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; margin-left: 5px; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --surface: #181c27; --surface2: #1e2333; --surface3: #252a3a;
+      --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+      --text: #e8ecf0; --muted: #7a8499; --dim: #4a5068;
+      --accent: #3ddc84; --accent-dim: rgba(61,220,132,0.13);
+      --red: #ff5f57; --red-dim: rgba(255,95,87,0.13);
+      --amber: #ffbd2e; --amber-dim: rgba(255,189,46,0.13);
+      --blue: #5b9df9; --blue-dim: rgba(91,157,249,0.13);
+      --sidebar: 220px; --topbar: 60px; --r: 10px; --rs: 6px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    #topBar {
+      position: fixed; top: 0; left: 0; right: 0; height: var(--topbar);
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px 0 calc(var(--sidebar) + 20px); z-index: 100;
+    }
+    .brand { font-size: 0.82rem; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+    .brand-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    #hamburger { display: none; background: none; border: none; color: var(--text); font-size: 1.3rem; cursor: pointer; }
+
+    #sidebar {
+      position: fixed; top: 0; left: 0; width: var(--sidebar); height: 100vh;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 200; transition: transform 0.3s ease;
+    }
+    .sb-logo { height: var(--topbar); display: flex; align-items: center; gap: 10px; padding: 0 18px; border-bottom: 1px solid var(--border); }
+    .sb-icon { width: 30px; height: 30px; background: linear-gradient(135deg, var(--accent), #1aa85a); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .sb-title { font-size: 0.88rem; font-weight: 700; line-height: 1.2; }
+    .sb-title span { display: block; font-size: 0.65rem; font-weight: 400; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .sb-nav { flex: 1; padding: 14px 8px; display: flex; flex-direction: column; gap: 2px; }
+    .nav-sec { font-size: 0.62rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim); padding: 10px 10px 4px; }
+    .nav-link { display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: var(--rs); color: var(--muted); text-decoration: none; font-size: 0.86rem; font-weight: 500; transition: all 0.15s; border: none; background: none; width: 100%; cursor: pointer; font-family: inherit; }
+    .nav-link:hover { background: var(--surface3); color: var(--text); }
+    .nav-link.active { background: var(--accent-dim); color: var(--accent); }
+    .sb-foot { padding: 10px 8px; border-top: 1px solid var(--border); }
+    #sideOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 150; }
+    #sideOverlay.show { display: block; }
+
+    #main { margin-left: var(--sidebar); margin-top: var(--topbar); padding: 26px 26px 100px; }
+
+    .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
+    .page-head h1 { font-size: 1.55rem; font-weight: 700; }
+    .page-head p { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    .head-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: var(--rs); font-size: 0.82rem; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; white-space: nowrap; }
+    .btn:active { transform: scale(0.97); }
+    .btn-ghost { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+    .btn-ghost:hover { background: var(--surface3); }
+    .btn-accent { background: var(--accent); color: #071a0e; font-weight: 700; }
+    .btn-accent:hover { opacity: 0.88; }
+    .btn-amber { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+    .btn-red { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+    .btn-sm { padding: 5px 11px; font-size: 0.77rem; }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 12px; margin-bottom: 22px; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 15px 17px; }
+    .stat-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--dim); margin-bottom: 7px; }
+    .stat-val { font-size: 1.45rem; font-weight: 700; font-family: 'DM Mono', monospace; }
+
+    .toolbar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 12px 15px; display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+    .sw { position: relative; flex: 1; min-width: 170px; }
+    .sw-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--dim); font-size: 0.85rem; pointer-events: none; }
+    .sw input { width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--rs); color: var(--text); font-family: inherit; font-size: 0.84rem; padding: 8px 11px 8px 30px; outline: none; transition: border-color 0.15s; }
+    .sw input::placeholder { color: var(--dim); }
+    .sw input:focus { border-color: var(--accent); }
+
+    .tbl-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    thead tr { border-bottom: 1px solid var(--border2); }
+    thead th { padding: 12px 15px; text-align: left; font-size: 0.69rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--dim); cursor: pointer; user-select: none; white-space: nowrap; transition: color 0.15s; }
+    thead th:hover { color: var(--text); }
+    .si { margin-left: 4px; color: var(--accent); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 11px 15px; vertical-align: middle; }
+    .c-id { color: var(--dim); font-family: 'DM Mono', monospace; font-size: 0.76rem; }
+    .c-bar { font-family: 'DM Mono', monospace; font-size: 0.79rem; color: var(--muted); }
+    .c-name { font-weight: 500; }
+    .qty-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--blue-dim); color: var(--blue); border-radius: 4px; padding: 2px 8px; font-family: 'DM Mono', monospace; font-weight: 600; font-size: 0.8rem; min-width: 42px; }
+    .c-mrp { font-family: 'DM Mono', monospace; font-weight: 600; }
+    .gst-tag { display: inline-block; background: var(--accent-dim); color: var(--accent); border-radius: 4px; padding: 1px 6px; font-size: 0.69rem; font-weight: 600; margin-top: 3px; }
+    .edit-input { background: var(--surface3); border: 1px solid var(--border2); border-radius: var(--rs); color: var(--text); font-family: inherit; font-size: 0.82rem; padding: 6px 8px; outline: none; width: 100%; min-width: 65px; transition: border-color 0.15s; }
+    .edit-input:focus { border-color: var(--accent); }
+
+    .center-state { padding: 60px 20px; text-align: center; color: var(--muted); }
+    .spinner { display: inline-block; width: 26px; height: 26px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #exportBtn {
+      position: fixed; bottom: 22px; right: 22px; z-index: 300;
+      background: var(--surface); color: var(--accent); border: 1px solid var(--accent);
+      padding: 10px 17px; border-radius: 50px; font-family: inherit; font-size: 0.82rem;
+      font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 7px;
+      box-shadow: 0 4px 20px rgba(61,220,132,0.2); transition: all 0.2s;
+    }
+    #exportBtn:hover { background: var(--accent); color: #071a0e; }
+
+    @media (max-width: 768px) {
+      #topBar { padding: 0 14px; }
+      .brand { display: none; }
+      #hamburger { display: block; }
+      #sidebar { transform: translateX(-100%); }
+      #sidebar.open { transform: translateX(0); }
+      #main { margin-left: 0; padding: 14px 12px 100px; }
+      .page-head { flex-direction: column; }
+      .head-btns { width: 100%; }
+      .head-btns .btn { flex: 1; justify-content: center; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .tbl-wrap { overflow-x: auto; }
+      table { min-width: 560px; }
+    }
   </style>
 </head>
-
 <body>
-<div id="mainContent">
-  <h1>Stock Overview</h1>
-  <button id="editToggleBtn">Enable Edit Mode</button>
-  <button id="addItemBtn" style="display:none;">Add New Item</button>
-  <button id="saveAllBtn" style="display:none;">Save All</button>
-  <br>
-  <div class="search-row">
-    <input type="text" id="searchName" placeholder="Search by Item Name...">
-    <input type="text" id="searchBarcode" placeholder="Search by Barcode...">
+
+<div id="sideOverlay"></div>
+
+<nav id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-icon">&#9971;</div>
+    <div class="sb-title">Evergreen <span>Golf IMS</span></div>
   </div>
-  <div id="stockContainer"></div>
-</div>
-
-<button id="downloadCsvBtn" style="position: fixed; bottom: 20px; left: 20px; z-index: 2000; background: #1f7a44; color: white; padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-  📊 Export Stock to Excel (CSV)
-</button>
-
-<nav id="topBar"><h2>Evergreen Golf Inventory Management System</h2></nav>
-<nav id="rightSidebar">
-  <ul>
-    <li id="red"><button id="logoutBtn">Logout</button></li>
-    <li><a href="sales.html">Sales</a></li>
-    <li class="active"><a href="./items.html">Stock</a></li>
-  </ul>
+  <div class="sb-nav">
+    <div class="nav-sec">Navigation</div>
+    <a href="sales.html" class="nav-link">&#128722; Sales</a>
+    <a href="./items.html" class="nav-link active">&#128230; Stock</a>
+    <div class="nav-sec">Reports</div>
+    <a href="#" class="nav-link">&#128202; Analytics</a>
+    <a href="#" class="nav-link">&#128203; Edit Log</a>
+  </div>
+  <div class="sb-foot">
+    <button id="logoutBtn" class="nav-link btn-red" style="width:100%;">&#8617; Logout</button>
+  </div>
 </nav>
 
+<header id="topBar">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button id="hamburger">&#9776;</button>
+    <div class="brand"><span class="brand-dot"></span> Evergreen Golf &nbsp;&middot;&nbsp; Inventory</div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="page-head">
+    <div>
+      <h1>Stock Overview</h1>
+      <p>Manage inventory items, pricing and HSN codes</p>
+    </div>
+    <div class="head-btns">
+      <button id="editBtn" class="btn btn-ghost">&#9998; Enable Edit Mode</button>
+      <button id="addBtn" class="btn btn-accent" style="display:none;">+ Add Item</button>
+      <button id="saveAllBtn" class="btn btn-accent" style="display:none;">&#128190; Save All</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Total Items</div><div class="stat-val" id="sItems">—</div></div>
+    <div class="stat"><div class="stat-label">Total Qty</div><div class="stat-val" id="sQty">—</div></div>
+    <div class="stat"><div class="stat-label">Avg MRP (Rs.)</div><div class="stat-val" id="sMrp">—</div></div>
+    <div class="stat"><div class="stat-label">With HSN</div><div class="stat-val" id="sHsn">—</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="sw"><span class="sw-icon">&#128269;</span><input type="text" id="searchName" placeholder="Search by item name..."></div>
+    <div class="sw" style="max-width:200px;"><span class="sw-icon">&#128204;</span><input type="text" id="searchBarcode" placeholder="Search barcode..."></div>
+  </div>
+
+  <div class="tbl-wrap" id="container">
+    <div class="center-state"><div class="spinner"></div><p>Loading stock data...</p></div>
+  </div>
+</main>
+
+<button id="exportBtn">&#128202; Export CSV</button>
+
 <script>
-document.addEventListener("DOMContentLoaded", async () => {
-  const SUPABASE_URL = "https://krveybwqyuuipenhawtx.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_5nif9Qruk9n0ChTqgdtoIQ_g2YHVbao";
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+(function() {
+  var SUPABASE_URL = "https://krveybwqyuuipenhawtx.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_5nif9Qruk9n0ChTqgdtoIQ_g2YHVbao";
+  var db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // --- SESSION CHECK ---
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    window.location.href = "Login.html";
-    return;
+  var container  = document.getElementById("container");
+  var editBtn    = document.getElementById("editBtn");
+  var addBtn     = document.getElementById("addBtn");
+  var saveAllBtn = document.getElementById("saveAllBtn");
+  var searchName = document.getElementById("searchName");
+  var searchBar  = document.getElementById("searchBarcode");
+  var exportBtn  = document.getElementById("exportBtn");
+  var logoutBtn  = document.getElementById("logoutBtn");
+  var hamburger  = document.getElementById("hamburger");
+  var sidebar    = document.getElementById("sidebar");
+  var overlay    = document.getElementById("sideOverlay");
+
+  var editMode = false;
+  var stockData = [];
+  var sortCol = -1;
+  var sortDir = 1;
+  var hsnMap = {};
+
+  hamburger.onclick = function() { sidebar.classList.toggle("open"); overlay.classList.toggle("show"); };
+  overlay.onclick   = function() { sidebar.classList.remove("open"); overlay.classList.remove("show"); };
+  logoutBtn.onclick = function() { db.auth.signOut().then(function() { window.location.href = "Login.html"; }); };
+
+  function loadHsn() {
+    fetch(SUPABASE_URL + "/storage/v1/object/public/Pub/hsn4_gst_rates.csv")
+      .then(function(r) { return r.ok ? r.text() : ""; })
+      .then(function(text) {
+        if (!text) return;
+        var lines = text.trim().split("\n").slice(1);
+        for (var i = 0; i < lines.length; i++) {
+          var cols = [], cur = "", inQ = false;
+          for (var j = 0; j < lines[i].length; j++) {
+            var ch = lines[i][j];
+            if (ch === '"') { inQ = !inQ; }
+            else if (ch === ',' && !inQ) { cols.push(cur); cur = ""; }
+            else { cur += ch; }
+          }
+          cols.push(cur);
+          if (cols[0] && cols[0].trim()) hsnMap[cols[0].trim()] = (cols[2] || "").trim() || "N/A";
+        }
+      })
+      .catch(function(e) { console.warn("HSN load failed:", e.message); });
   }
 
-  // --- ELEMENTS ---
-  const container = document.getElementById("stockContainer");
-  const editBtn = document.getElementById("editToggleBtn");
-  const addBtn = document.getElementById("addItemBtn");
-  const searchName = document.getElementById("searchName");
-  const searchBarcode = document.getElementById("searchBarcode");
-  const downloadBtn = document.getElementById("downloadCsvBtn");
-  const logoutBtn = document.getElementById("logoutBtn");
-
-  let editMode = false;
-  let stockData = [];
-  let currentSortColumn = -1;
-  let currentSortDirection = 1;
-let hsnGstMap = {};
-
-async function loadHsnData() {
-  try {
-    const res = await fetch("https://krveybwqyuuipenhawtx.supabase.co/storage/v1/object/public/Pub/hsn4_gst_rates.csv");
-    const text = await res.text();
-    const lines = text.trim().split("\n").slice(1);
-    lines.forEach(line => {
-      // Handle quoted fields with commas inside
-      const cols = [];
-      let current = "";
-      let inQuotes = false;
-      for (let char of line) {
-        if (char === '"') { inQuotes = !inQuotes; }
-        else if (char === ',' && !inQuotes) { cols.push(current); current = ""; }
-        else { current += char; }
-      }
-      cols.push(current);
-      const hsn = cols[0]?.trim();
-      const gst = cols[2]?.trim();
-      if (hsn) hsnGstMap[hsn] = gst || "N/A";
-    });
-  } catch(e) {
-    console.error("Failed to load HSN data", e);
-  }
-}
-  // --- LOGOUT ---
-  if (logoutBtn) {
-    logoutBtn.onclick = async () => {
-      await supabase.auth.signOut();
-      window.location.href = "Login.html";
-    };
+  function fetchData() {
+    db.from("Stock").select("*").order("ID", { ascending: true })
+      .then(function(result) {
+        if (result.error) {
+          container.innerHTML = '<div class="center-state"><p style="color:var(--red)">Error: ' + result.error.message + '</p></div>';
+          return;
+        }
+        stockData = result.data || [];
+        updateStats();
+        renderTable();
+      })
+      .catch(function(e) {
+        container.innerHTML = '<div class="center-state"><p style="color:var(--red)">Error: ' + e.message + '</p></div>';
+      });
   }
 
-  // --- FETCH ---
-  async function fetchData() {
-    const { data } = await supabase.from("Stock").select("*").order('ID', { ascending: true });
-    stockData = data || [];
+  function updateStats() {
+    document.getElementById("sItems").textContent = stockData.length;
+    var qty = stockData.reduce(function(s, r) { return s + (parseFloat(r.QTY) || 0); }, 0);
+    document.getElementById("sQty").textContent = qty % 1 ? qty.toFixed(1) : qty;
+    var mrps = stockData.map(function(r) { return parseFloat(r.MRP); }).filter(function(n) { return !isNaN(n) && n > 0; });
+    var avg = mrps.length ? mrps.reduce(function(a, b) { return a + b; }, 0) / mrps.length : 0;
+    document.getElementById("sMrp").textContent = avg ? avg.toFixed(0) : "N/A";
+    document.getElementById("sHsn").textContent = stockData.filter(function(r) { return r.HSN && String(r.HSN).trim(); }).length;
   }
 
-  // --- RENDER TABLE ---
+  function gstBadge(hsn) {
+    if (!hsn || !hsnMap[hsn]) return "";
+    return '<div class="gst-tag">GST ' + hsnMap[hsn] + '%</div>';
+  }
+
   function renderTable() {
-    container.innerHTML = "";
-
-    const nameTerm = searchName.value.toLowerCase();
-    const barcodeTerm = searchBarcode.value.toLowerCase();
-
-    let filteredData = stockData.filter(item => {
-      const name = (item.Item_Name || "").toLowerCase();
-      const barcode = String(item.Barcode || "").toLowerCase();
-      return name.includes(nameTerm) && barcode.includes(barcodeTerm);
+    var nt = searchName.value.toLowerCase();
+    var bt = searchBar.value.toLowerCase();
+    var filtered = stockData.filter(function(r) {
+      return (r.Item_Name || "").toLowerCase().indexOf(nt) > -1 &&
+             String(r.Barcode || "").toLowerCase().indexOf(bt) > -1;
     });
 
-    if (currentSortColumn !== -1) {
-      filteredData.sort((a, b) => {
-        let keys = ["ID", "Barcode", "Item_Name", "QTY", "Unit", "MRP","HSN"];
-        let A = a[keys[currentSortColumn]] ?? "";
-        let B = b[keys[currentSortColumn]] ?? "";
-        if (typeof A === "number" && typeof B === "number") return (A - B) * currentSortDirection;
-        return A.toString().localeCompare(B.toString()) * currentSortDirection;
+    if (sortCol !== -1) {
+      var keys = ["ID", "Barcode", "Item_Name", "QTY", "Unit", "MRP", "HSN"];
+      filtered.sort(function(a, b) {
+        var A = a[keys[sortCol]] != null ? a[keys[sortCol]] : "";
+        var B = b[keys[sortCol]] != null ? b[keys[sortCol]] : "";
+        if (typeof A === "number" && typeof B === "number") return (A - B) * sortDir;
+        return A.toString().localeCompare(B.toString()) * sortDir;
       });
     }
 
-    const table = document.createElement("table");
-    table.classList.add("stockTable");
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th onclick="sortTable(0)">ID <span class="sort-indicator"></span></th>
-          <th onclick="sortTable(1)">Barcode <span class="sort-indicator"></span></th>
-          <th onclick="sortTable(2)">Item Name <span class="sort-indicator"></span></th>
-          <th onclick="sortTable(3)">Qty <span class="sort-indicator"></span></th>
-          <th onclick="sortTable(4)">Unit <span class="sort-indicator"></span></th>
-          <th onclick="sortTable(5)">Price(₹) <span class="sort-indicator"></span></th>
-          <th onclick="sortTable(6)">HSN <span class="sort-indicator"></span></th>
-          ${editMode ? "<th>Actions</th>" : ""}
-        </tr>
-      </thead>
-      <tbody></tbody>
-    `;
-
-    const tbody = table.querySelector("tbody");
-
- filteredData.forEach(row => {
-  const tr = document.createElement("tr");
-  tr.dataset.id = row.ID;
-
-  if (editMode) {
-    tr.innerHTML = `
-      <td>${row.ID}</td>
-      <td><input class="edit-input" data-key="Barcode" value="${row.Barcode || ''}"></td>
-      <td><input class="edit-input" data-key="Item_Name" value="${row.Item_Name || ''}"></td>
-      <td><input class="edit-input" data-key="QTY" type="number" step="0.01" value="${row.QTY || 0}"></td>
-      <td><input class="edit-input" data-key="Unit" value="${row.Unit || 'Pcs'}"></td>
-      <td><input class="edit-input" data-key="MRP" type="text" value="${row.MRP || 0}"></td>
-      <td>
-  <input class="edit-input" data-key="HSN" value="${row.HSN || ''}" id="hsn_${row.ID}">
-  <small id="gst_${row.ID}" style="color:#27ae60;font-weight:600;">
-    ${row.HSN && hsnGstMap[row.HSN] ? `GST: ${hsnGstMap[row.HSN]}%` : ''}
-  </small>
-</td>
-      <td class="actionsCell">
-        <button class="saveRowBtn">Save</button>
-        <button class="deleteBtn">Delete</button>
-      </td>
-    `;
-
-tr.querySelector(".saveRowBtn").onclick = async () => {
-  const saveBtn = tr.querySelector(".saveRowBtn");
-  const up = {};
-  tr.querySelectorAll(".edit-input").forEach(input => {
-    const k = input.dataset.key;
-    up[k] = (k === 'QTY' || k === 'MRP') ? Number(input.value) : input.value.trim();
-  });
-
-  saveBtn.textContent = "Saving...";
-  saveBtn.disabled = true;
-  saveBtn.style.background = "#f39c12";
-
-  const { error } = await supabase.from("Stock").update(up).eq("ID", tr.dataset.id);
-
-  if (error) {
-    saveBtn.textContent = "Error!";
-    saveBtn.style.background = "#e74c3c";
-    setTimeout(() => {
-      saveBtn.textContent = "Save";
-      saveBtn.disabled = false;
-      saveBtn.style.background = "";
-    }, 2000);
-  } else {
-// --- CHANGE LOG ---
-    const original = stockData.find(s => s.ID == tr.dataset.id);
-    const trackedFields = ["MRP", "Item_Name", "QTY"];
-    const changeLog = trackedFields
-      .filter(f => {
-        const oldVal = (f === 'QTY' || f === 'MRP') ? Number(original[f]) : (original[f] || "").trim();
-        return oldVal !== up[f];
-      })
-      .map(f => {
-        const oldVal = (f === 'QTY' || f === 'MRP') ? Number(original[f]) : (original[f] || "").trim();
-        return `${f}:(${oldVal}-->${up[f]})`;
-      }).join(", ");
-
-    if (changeLog) {
-      await supabase.from("Edits").insert([{
-        barcode: original.Barcode,
-        item_name: up.Item_Name || original.Item_Name,
-        changes: changeLog,
-        action: "UPDATE"
-      }]);
+    if (!filtered.length) {
+      container.innerHTML = '<div class="center-state"><p>No items found</p></div>';
+      return;
     }
-    // --- END CHANGE LOG ---
-    saveBtn.style.background = "#27ae60";
-    setTimeout(async () => {
-      await Promise.all([fetchData(), loadHsnData()]);
-      renderTable();
-    }, 800);
-  }
-};
 
-    tr.querySelector(".deleteBtn").onclick = async () => {
-      if (confirm("Delete this item?")) {
-      await supabase.from("Edits").insert([{
-        barcode: row.Barcode,
-        item_name: row.Item_Name,
-        changes: "Item deleted",
-        action: "DELETE"
-      }]);
-        await supabase.from("Stock").delete().eq("ID", tr.dataset.id);
-        await fetchData(); renderTable();
+    var actionTh = editMode ? "<th>Actions</th>" : "";
+    var html = '<table><thead><tr>' +
+      '<th onclick="window._sort(0)">ID<span class="si"></span></th>' +
+      '<th onclick="window._sort(1)">Barcode<span class="si"></span></th>' +
+      '<th onclick="window._sort(2)">Item Name<span class="si"></span></th>' +
+      '<th onclick="window._sort(3)">Qty<span class="si"></span></th>' +
+      '<th onclick="window._sort(4)">Unit<span class="si"></span></th>' +
+      '<th onclick="window._sort(5)">Price (Rs.)<span class="si"></span></th>' +
+      '<th onclick="window._sort(6)">HSN / GST<span class="si"></span></th>' +
+      actionTh + '</tr></thead><tbody>';
+
+    for (var i = 0; i < filtered.length; i++) {
+      var row = filtered[i];
+      if (editMode) {
+        html += '<tr data-id="' + row.ID + '">' +
+          '<td class="c-id">' + row.ID + '</td>' +
+          '<td><input class="edit-input" data-key="Barcode" value="' + (row.Barcode || "") + '"></td>' +
+          '<td><input class="edit-input" data-key="Item_Name" value="' + (row.Item_Name || "").replace(/"/g, "&quot;") + '"></td>' +
+          '<td><input class="edit-input" data-key="QTY" type="number" step="0.01" value="' + (row.QTY || 0) + '" style="max-width:75px;"></td>' +
+          '<td><input class="edit-input" data-key="Unit" value="' + (row.Unit || "Pcs") + '" style="max-width:65px;"></td>' +
+          '<td><input class="edit-input" data-key="MRP" type="number" value="' + (row.MRP || 0) + '" style="max-width:85px;"></td>' +
+          '<td><input class="edit-input" data-key="HSN" value="' + (row.HSN || "") + '" style="max-width:90px;" data-hsnid="' + row.ID + '">' +
+          '<div id="gst_' + row.ID + '">' + gstBadge(row.HSN) + '</div></td>' +
+          '<td style="white-space:nowrap;">' +
+          '<button class="btn btn-accent btn-sm" onclick="window._save(this)">Save</button> ' +
+          '<button class="btn btn-red btn-sm" onclick="window._del(this)">Delete</button>' +
+          '</td></tr>';
+      } else {
+        html += '<tr>' +
+          '<td class="c-id">' + row.ID + '</td>' +
+          '<td class="c-bar">' + (row.Barcode || "") + '</td>' +
+          '<td class="c-name">' + (row.Item_Name || "") + '</td>' +
+          '<td><span class="qty-badge">' + (row.QTY || 0) + '</span></td>' +
+          '<td style="color:var(--muted)">' + (row.Unit || "Pcs") + '</td>' +
+          '<td class="c-mrp">Rs.' + Number(row.MRP || 0).toLocaleString() + '</td>' +
+          '<td>' + (row.HSN || '<span style="color:var(--dim)">N/A</span>') + gstBadge(row.HSN) + '</td>' +
+          '</tr>';
       }
-    };
+    }
 
-  } else {
-    tr.innerHTML = `
-      <td>${row.ID}</td>
-      <td>${row.Barcode}</td>
-      <td>${row.Item_Name}</td>
-      <td>${row.QTY}</td>
-      <td>${row.Unit || 'Pcs'}</td>
-      <td>${row.MRP}</td>
-      <td>
-  ${row.HSN || ''}
-  ${row.HSN && hsnGstMap[row.HSN] ? `<br><small style="color:#27ae60;font-weight:600;">GST: ${hsnGstMap[row.HSN]}%</small>` : ''}
-</td>
-    `;
-  }
+    html += '</tbody></table>';
+    container.innerHTML = html;
 
-  tbody.appendChild(tr);
-  if (editMode) {
-  const hsnInput = tr.querySelector(`#hsn_${row.ID}`);
-  const gstLabel = tr.querySelector(`#gst_${row.ID}`);
-  if (hsnInput && gstLabel) {
-    hsnInput.addEventListener("input", () => {
-      const val = hsnInput.value.trim();
-      gstLabel.textContent = hsnGstMap[val] ? `GST: ${hsnGstMap[val]}%` : '';
-    });
-  }
-}
-});
+    if (editMode) {
+      var hsnInputs = container.querySelectorAll('[data-hsnid]');
+      for (var k = 0; k < hsnInputs.length; k++) {
+        (function(inp) {
+          inp.addEventListener('input', function() {
+            var id = inp.getAttribute('data-hsnid');
+            var div = document.getElementById('gst_' + id);
+            if (div) div.innerHTML = gstBadge(inp.value.trim());
+          });
+        })(hsnInputs[k]);
+      }
+    }
 
-    container.appendChild(table);
     updateSortIndicators();
   }
 
-  // --- SORT ---
-  window.sortTable = function(columnIndex) {
-    if (currentSortColumn === columnIndex) {
-      currentSortDirection *= -1;
-    } else {
-      currentSortDirection = 1;
-    }
-    currentSortColumn = columnIndex;
-    renderTable();
-  };
-
   function updateSortIndicators() {
-    const indicators = container.querySelectorAll(".sort-indicator");
-    indicators.forEach((el, i) => {
-      if (i === currentSortColumn) {
-        el.textContent = currentSortDirection === 1 ? "▲" : "▼";
-      } else {
-        el.textContent = "";
-      }
-    });
-  }
-
-  // --- ROW EDITING ---
-  function enableRowEditing(row) {
-    const cells = row.querySelectorAll(".edit-cell");
-    cells.forEach(cell => {
-      cell.contentEditable = true;
-      cell.style.background = "#f9f9a9";
-      cell.oninput = () => {
-        tr.querySelector(".saveRowBtn").onclick = async () => {
-  const saveBtn = tr.querySelector(".saveRowBtn");
-  const up = {};
-  tr.querySelectorAll(".edit-input").forEach(input => {
-    const k = input.dataset.key;
-    up[k] = (k === 'QTY' || k === 'MRP') ? Number(input.value) : input.value.trim();
-  });
-
-  saveBtn.textContent = "Saving...";
-  saveBtn.disabled = true;
-  saveBtn.style.background = "#f39c12";
-
-  const { error } = await supabase.from("Stock").update(up).eq("ID", tr.dataset.id);
-
-  if (error) {
-    saveBtn.textContent = "Error!";
-    saveBtn.style.background = "#e74c3c";
-    setTimeout(() => {
-      saveBtn.textContent = "Save";
-      saveBtn.disabled = false;
-      saveBtn.style.background = "";
-    }, 2000);
-  } else {
-    // --- CHANGE LOG ---
-    const original = stockData.find(s => s.ID == tr.dataset.id);
-    const trackedFields = ["MRP", "Item_Name", "QTY"];
-    const changeLog = trackedFields
-      .filter(f => {
-        const oldVal = (f === 'QTY' || f === 'MRP') ? Number(original[f]) : (original[f] || "").trim();
-        return oldVal !== up[f];
-      })
-      .map(f => {
-        const oldVal = (f === 'QTY' || f === 'MRP') ? Number(original[f]) : (original[f] || "").trim();
-        return `${f}:(${oldVal}-->${up[f]})`;
-      }).join(", ");
-
-    if (changeLog) {
-      await supabase.from("Edits").insert([{
-        barcode: original.Barcode,
-        item_name: up.Item_Name || original.Item_Name,
-        changes: changeLog,
-        action: "UPDATE"
-      }]);
+    var spans = container.querySelectorAll(".si");
+    for (var i = 0; i < spans.length; i++) {
+      spans[i].textContent = i === sortCol ? (sortDir === 1 ? " ▲" : " ▼") : "";
     }
-    // --- END CHANGE LOG ---
-
-    saveBtn.textContent = "Saved ✓";
-    saveBtn.style.background = "#27ae60";
-    setTimeout(async () => {
-      await Promise.all([fetchData(), loadHsnData()]);
-      renderTable();
-    }, 800);
-  }
-};
-      };
-    });
-
-    row.querySelector(".deleteBtn").onclick = async () => {
-      if (confirm("Delete this item?")) {
-        await supabase.from("Stock").delete().eq("ID", row.dataset.id);
-        await fetchData(); renderTable();
-      }
-    };
   }
 
-  // --- ADD ITEM ---
-  // --- ADD ITEM ---
-addBtn.onclick = () => {
-  const tbody = container.querySelector("table tbody");
-  const tr = document.createElement("tr");
-  tr.classList.add("pendingRow");
-  tr.innerHTML = `
-    <td>New</td>
-    <td><input type="text" class="nBar" placeholder="Barcode"></td>
-    <td><input type="text" class="nNam" placeholder="Item Name"></td>
-    <td><input type="number" step="0.01" class="nQty" placeholder="0"></td>
-    <td><input type="text" class="nUni" value="Pcs"></td>
-    <td><input type="number" class="nMrp" placeholder="0"></td>
-    <td><input type="text" class="nHsn" placeholder="HSN"></td>
-    <td>
-      <button class="deleteBtn">Cancel</button>
-    </td>
-  `;
-  tbody.prepend(tr);
-  tr.querySelector(".deleteBtn").onclick = () => tr.remove();
-};
-
-// --- SAVE ALL PENDING ---
-document.getElementById("saveAllBtn").onclick = async () => {
-  const pendingRows = container.querySelectorAll(".pendingRow");
-  if (!pendingRows.length) return;
-
-  const payloads = [];
-  let valid = true;
-
-  pendingRows.forEach(tr => {
-    const barcode = tr.querySelector(".nBar").value.trim();
-    const name = tr.querySelector(".nNam").value.trim();
-    if (!barcode || !name) { valid = false; return; }
-    payloads.push({
-      Barcode: barcode,
-      Item_Name: name,
-      QTY: parseFloat(tr.querySelector(".nQty").value) || 0,
-      Unit: tr.querySelector(".nUni").value.trim(),
-      MRP: parseFloat(tr.querySelector(".nMrp").value) || 0,
-      HSN: tr.querySelector(".nHsn").value.trim()
-    });
-  });
-
-  if (!valid) { alert("Please fill in Barcode and Item Name for all rows."); return; }
-
-  const btn = document.getElementById("saveAllBtn");
-  btn.textContent = "Saving...";
-  btn.disabled = true;
-
-  const { error } = await supabase.from("Stock").insert(payloads);
-    if (error) {
-      alert("Error saving items: " + error.message);
-      btn.textContent = "Save All";
-      btn.disabled = false;
-    } else {
-      // --- ADD LOG ---
-      const editLogs = payloads.map(p => ({
-        barcode: p.Barcode,
-        item_name: p.Item_Name,
-        changes: `QTY:(${p.QTY}), MRP:(${p.MRP}), Unit:(${p.Unit}), HSN:(${p.HSN})`,
-        action: "ADD"
-      }));
-      await supabase.from("Edits").insert(editLogs);
-      // --- END ADD LOG ---
-      btn.textContent = "Save All";
-      btn.disabled = false;
-      await fetchData(); renderTable();
-    }
-};
-
-  // --- CSV EXPORT ---
-  downloadBtn.onclick = () => {
-  const headers = "ID,Barcode,Item Name,Quantity,Price(INR),HSN\n";
-  const rows = stockData.map(r => `${r.ID},"=""${r.Barcode}""","${r.Item_Name}",${r.QTY},${r.MRP},"${r.HSN || ''}"`).join("\n");
-    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Evergreen_Stock_${new Date().toLocaleDateString()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // --- EDIT TOGGLE ---
-  editBtn.onclick = () => {
-    editMode = !editMode;
-    editBtn.textContent = editMode ? "Disable Edit Mode" : "Enable Edit Mode";
-    addBtn.style.display = editMode ? "inline-block" : "none";
-    document.getElementById("saveAllBtn").style.display = editMode ? "inline-block" : "none";
+  window._sort = function(col) {
+    sortDir = (sortCol === col) ? sortDir * -1 : 1;
+    sortCol = col;
     renderTable();
   };
 
-  // --- SEARCH LISTENERS ---
-  searchName.oninput = renderTable;
-  searchBarcode.oninput = renderTable;
+  window._save = function(btn) {
+    var tr = btn.closest("tr");
+    var id = tr.getAttribute("data-id");
+    var up = {};
+    var inputs = tr.querySelectorAll(".edit-input");
+    for (var i = 0; i < inputs.length; i++) {
+      var k = inputs[i].getAttribute("data-key");
+      if (k) up[k] = (k === "QTY" || k === "MRP") ? Number(inputs[i].value) : inputs[i].value.trim();
+    }
+    btn.textContent = "Saving..."; btn.disabled = true;
+    db.from("Stock").update(up).eq("ID", id).then(function(result) {
+      if (result.error) {
+        btn.textContent = "Error!"; btn.style.background = "var(--red)";
+        setTimeout(function() { btn.textContent = "Save"; btn.disabled = false; btn.style.background = ""; }, 2000);
+      } else {
+        var orig = null;
+        for (var i = 0; i < stockData.length; i++) { if (stockData[i].ID == id) { orig = stockData[i]; break; } }
+        var log = [];
+        var fields = ["MRP", "Item_Name", "QTY"];
+        for (var f = 0; f < fields.length; f++) {
+          var key = fields[f];
+          var old = (key === "QTY" || key === "MRP") ? Number(orig[key]) : (orig[key] || "").trim();
+          if (old !== up[key]) log.push(key + ":(" + old + "->" + up[key] + ")");
+        }
+        if (log.length) db.from("Edits").insert([{ barcode: orig.Barcode, item_name: up.Item_Name || orig.Item_Name, changes: log.join(", "), action: "UPDATE" }]);
+        btn.textContent = "Saved!";
+        setTimeout(function() { fetchData(); }, 800);
+      }
+    });
+  };
 
-  // --- INIT ---
-  await Promise.all([fetchData(), loadHsnData()]);
-  renderTable();
-});
+  window._del = function(btn) {
+    if (!confirm("Delete this item?")) return;
+    var tr = btn.closest("tr");
+    var id = tr.getAttribute("data-id");
+    var row = null;
+    for (var i = 0; i < stockData.length; i++) { if (stockData[i].ID == id) { row = stockData[i]; break; } }
+    db.from("Edits").insert([{ barcode: row.Barcode, item_name: row.Item_Name, changes: "Item deleted", action: "DELETE" }]);
+    db.from("Stock").delete().eq("ID", id).then(function() { fetchData(); });
+  };
+
+  editBtn.onclick = function() {
+    editMode = !editMode;
+    editBtn.textContent = editMode ? "Exit Edit Mode" : "Enable Edit Mode";
+    editBtn.className = editMode ? "btn btn-amber" : "btn btn-ghost";
+    addBtn.style.display = editMode ? "inline-flex" : "none";
+    saveAllBtn.style.display = editMode ? "inline-flex" : "none";
+    renderTable();
+  };
+
+  addBtn.onclick = function() {
+    var tbody = container.querySelector("tbody");
+    if (!tbody) return;
+    var tr = document.createElement("tr");
+    tr.innerHTML = '<td class="c-id" style="color:var(--accent)">New</td>' +
+      '<td><input type="text" class="edit-input nBar" placeholder="Barcode"></td>' +
+      '<td><input type="text" class="edit-input nNam" placeholder="Item Name"></td>' +
+      '<td><input type="number" step="0.01" class="edit-input nQty" placeholder="0" style="max-width:75px;"></td>' +
+      '<td><input type="text" class="edit-input nUni" value="Pcs" style="max-width:65px;"></td>' +
+      '<td><input type="number" class="edit-input nMrp" placeholder="0" style="max-width:85px;"></td>' +
+      '<td><input type="text" class="edit-input nHsn" placeholder="HSN" style="max-width:90px;"></td>' +
+      '<td><button class="btn btn-red btn-sm" onclick="this.closest(\'tr\').remove()">Cancel</button></td>';
+    tbody.prepend(tr);
+    tr.querySelector(".nBar").focus();
+  };
+
+  saveAllBtn.onclick = function() {
+    var rows = container.querySelectorAll(".pending-row");
+    if (!rows.length) { alert("No pending rows."); return; }
+    var payloads = [], valid = true;
+    for (var i = 0; i < rows.length; i++) {
+      var b = rows[i].querySelector(".nBar").value.trim();
+      var n = rows[i].querySelector(".nNam").value.trim();
+      if (!b || !n) { valid = false; break; }
+      payloads.push({ Barcode: b, Item_Name: n, QTY: parseFloat(rows[i].querySelector(".nQty").value) || 0, Unit: rows[i].querySelector(".nUni").value.trim(), MRP: parseFloat(rows[i].querySelector(".nMrp").value) || 0, HSN: rows[i].querySelector(".nHsn").value.trim() });
+    }
+    if (!valid) { alert("Fill Barcode and Item Name for all rows."); return; }
+    saveAllBtn.textContent = "Saving..."; saveAllBtn.disabled = true;
+    db.from("Stock").insert(payloads).then(function(result) {
+      if (result.error) { alert("Error: " + result.error.message); }
+      else { fetchData(); }
+      saveAllBtn.textContent = "Save All"; saveAllBtn.disabled = false;
+    });
+  };
+
+  exportBtn.onclick = function() {
+    var csv = "ID,Barcode,Item Name,Quantity,Price(INR),HSN\n";
+    for (var i = 0; i < stockData.length; i++) {
+      var r = stockData[i];
+      csv += r.ID + ',"=""' + r.Barcode + '""","' + (r.Item_Name || "") + '",' + r.QTY + ',' + r.MRP + ',"' + (r.HSN || "") + '"\n';
+    }
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = "Evergreen_Stock_" + new Date().toLocaleDateString("en-IN") + ".csv";
+    a.click();
+  };
+
+  searchName.oninput = renderTable;
+  searchBar.oninput = renderTable;
+
+  // INIT
+  loadHsn();
+  fetchData();
+})();
 </script>
 </body>
 </html>
