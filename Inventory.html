@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock — Evergreen Golf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0f1117;
+      --surface:     #181c27;
+      --surface2:    #1e2333;
+      --surface3:    #252a3a;
+      --border:      rgba(255,255,255,0.07);
+      --border2:     rgba(255,255,255,0.12);
+      --text:        #e8ecf0;
+      --text-muted:  #7a8499;
+      --text-dim:    #4a5068;
+      --accent:      #3ddc84;
+      --accent-dim:  rgba(61,220,132,0.12);
+      --accent-glow: rgba(61,220,132,0.25);
+      --red:         #ff5f57;
+      --red-dim:     rgba(255,95,87,0.12);
+      --amber:       #ffbd2e;
+      --amber-dim:   rgba(255,189,46,0.12);
+      --blue:        #5b9df9;
+      --blue-dim:    rgba(91,157,249,0.12);
+      --sidebar-w:   240px;
+      --topbar-h:    60px;
+      --radius:      10px;
+      --radius-sm:   6px;
+      --shadow:      0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    html { font-size: 15px; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── TOP BAR ─────────────────────────────────── */
+    #topBar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--topbar-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px 0 calc(var(--sidebar-w) + 20px);
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+
+    #topBar .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    #topBar .brand .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; } 50% { opacity: 0.4; }
+    }
+
+    #topBar .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────── */
+    #sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar-w);
+      height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 1100;
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .sidebar-logo {
+      padding: 0 20px;
+      height: var(--topbar-h);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), #1aa85a);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .sidebar-logo .logo-text {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .sidebar-logo .logo-text span {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 400;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .nav-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      padding: 12px 10px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: all 0.15s;
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .nav-item:hover { background: var(--surface3); color: var(--text); }
+    .nav-item.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+    .nav-item .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+    .sidebar-footer {
+      padding: 12px 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── MAIN CONTENT ────────────────────────────── */
+    #mainContent {
+      margin-left: var(--sidebar-w);
+      margin-top: var(--topbar-h);
+      padding: 28px 28px 100px;
+      min-height: calc(100vh - var(--topbar-h));
+    }
+
+    /* ── PAGE HEADER ─────────────────────────────── */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .page-header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+    .page-header p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* ── BUTTONS ─────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.83rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-ghost {
+      background: var(--surface2);
+      border-color: var(--border2);
+      color: var(--text);
+    }
+    .btn-ghost:hover { background: var(--surface3); }
+    .btn-accent {
+      background: var(--accent);
+      color: #0a1a10;
+      font-weight: 700;
+    }
+    .btn-accent:hover { opacity: 0.9; }
+    .btn-edit-on {
+      background: var(--amber-dim);
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+    .btn-danger {
+      background: var(--red-dim);
+      border-color: var(--red);
+      color: var(--red);
+    }
+    .btn-sm { padding: 5px 11px; font-size: 0.78rem; }
+
+    /* ── STATS ROW ───────────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+    .stat-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .stat-val {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── SEARCH / FILTER BAR ─────────────────────── */
+    .toolbar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 180px;
+    }
+    .search-wrap .icon {
+      position: absolute;
+      left: 11px;
+      top: 50%; transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+    .search-wrap input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 9px 12px 9px 32px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .search-wrap input::placeholder { color: var(--text-dim); }
+    .search-wrap input:focus { border-color: var(--accent); }
+
+    /* ── TABLE WRAPPER ───────────────────────────── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .stockTable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .stockTable thead tr {
+      border-bottom: 1px solid var(--border2);
+    }
+
+    .stockTable thead th {
+      padding: 13px 16px;
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-dim);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+    .stockTable thead th:hover { color: var(--text); }
+
+    .sort-indicator { margin-left: 5px; color: var(--accent); }
+
+    .stockTable tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    .stockTable tbody tr:last-child { border-bottom: none; }
+    .stockTable tbody tr:hover { background: var(--surface2); }
+
+    .stockTable tbody td {
+      padding: 12px 16px;
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    /* column-specific */
+    .col-id { color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 0.78rem; }
+    .col-barcode { font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--text-muted); }
+    .col-name { font-weight: 500; }
+    .col-qty .qty-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--blue-dim);
+      color: var(--blue);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-family: 'DM Mono', monospace;
+      font-weight: 600;
+      font-size: 0.82rem;
+      min-width: 44px;
+    }
+    .col-mrp { font-family: 'DM Mono', monospace; font-weight: 600; }
+    .col-hsn .gst-tag {
+      display: inline-block;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    /* edit inputs */
+    .edit-input {
+      background: var(--surface3);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.83rem;
+      padding: 6px 9px;
+      outline: none;
+      width: 100%;
+      min-width: 70px;
+      transition: border-color 0.15s;
+    }
+    .edit-input:focus { border-color: var(--accent); }
+
+    /* row actions */
+    .actionsCell { white-space: nowrap; }
+
+    /* pending new row */
+    .pendingRow { background: rgba(61,220,132,0.03); }
+    .pendingRow td { border-bottom: 1px dashed var(--accent-glow) !important; }
+
+    /* ── EMPTY STATE ─────────────────────────────── */
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+    .empty-state p { font-size: 0.88rem; }
+
+    /* ── EXPORT BTN ──────────────────────────────── */
+    #downloadCsvBtn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 2000;
+      background: var(--surface);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 11px 18px;
+      border-radius: 50px;
+      font-family: inherit;
+      font-size: 0.83rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(61,220,132,0.2);
+      transition: all 0.2s;
+    }
+    #downloadCsvBtn:hover {
+      background: var(--accent);
+      color: #0a1a10;
+      box-shadow: 0 6px 28px rgba(61,220,132,0.35);
+    }
+
+    /* ── MOBILE HAMBURGER ────────────────────────── */
+    #hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    #sidebarOverlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1050;
+      backdrop-filter: blur(2px);
+    }
+    #sidebarOverlay.show { display: block; }
+
+    /* ── LOADING ─────────────────────────────────── */
+    #loadingState {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .spinner {
+      display: inline-block;
+      width: 28px; height: 28px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESPONSIVE ──────────────────────────────── */
+    @media (max-width: 768px) {
+      :root { --sidebar-w: 0px; }
+
+      #sidebar {
+        width: 240px;
+        transform: translateX(-100%);
+        z-index: 1200;
+      }
+      #sidebar.open { transform: translateX(0); }
+
+      #hamburger { display: block; }
+
+      #topBar { padding: 0 16px; }
+      #topBar .brand { display: none; }
+
+      #mainContent { margin-left: 0; padding: 16px 12px 100px; }
+
+      .page-header { flex-direction: column; gap: 12px; }
+      .header-actions { width: 100%; }
+      .header-actions .btn { flex: 1; justify-content: center; }
+
+      .stats-row { grid-template-columns: 1fr 1fr; }
+
+      /* Mobile card-style table */
+      .table-wrap { overflow-x: auto; }
+      .stockTable { min-width: 580px; }
+
+      #downloadCsvBtn {
+        bottom: 16px; right: 16px;
+        font-size: 0.78rem;
+        padding: 9px 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- SIDEBAR OVERLAY -->
+<div id="sidebarOverlay"></div>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">⛳</div>
+    <div class="logo-text">
+      Evergreen
+      <span>Golf IMS</span>
+    </div>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-label">Navigation</div>
+    <a href="sales.html" class="nav-item">
+      <span class="nav-icon">🛒</span> Sales
+    </a>
+    <a href="./items.html" class="nav-item active">
+      <span class="nav-icon">📦</span> Stock
+    </a>
+
+    <div class="nav-label" style="margin-top:8px;">Reports</div>
+    <a href="#" class="nav-item">
+      <span class="nav-icon">📊</span> Analytics
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-icon">📋</span> Edit Log
+    </a>
+  </div>
+
+  <div class="sidebar-footer">
+    <button id="logoutBtn" class="nav-item btn-danger" style="border-radius:var(--radius-sm);">
+      <span class="nav-icon">↪</span> Logout
+    </button>
+  </div>
+</nav>
+
+<!-- TOP BAR -->
+<header id="topBar">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button id="hamburger">☰</button>
+    <div class="brand">
+      <span class="dot"></span>
+      Evergreen Golf &nbsp;·&nbsp; Inventory
+    </div>
+  </div>
+  <div class="top-actions" id="topActions">
+    <!-- filled by JS -->
+  </div>
+</header>
+
+<!-- MAIN -->
+<main id="mainContent">
+
+  <div class="page-header">
+    <div>
+      <h1>Stock Overview</h1>
+      <p>Manage inventory items, pricing, and HSN codes</p>
+    </div>
+    <div class="header-actions" id="headerActions">
+      <button id="editToggleBtn" class="btn btn-ghost">
+        ✏️ Enable Edit Mode
+      </button>
+      <button id="addItemBtn" class="btn btn-accent" style="display:none;">
+        ＋ Add Item
+      </button>
+      <button id="saveAllBtn" class="btn btn-accent" style="display:none;">
+        💾 Save All
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card">
+      <div class="stat-label">Total Items</div>
+      <div class="stat-val" id="statItems">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Qty</div>
+      <div class="stat-val" id="statQty">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg MRP (₹)</div>
+      <div class="stat-val" id="statMrp">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">With HSN</div>
+      <div class="stat-val" id="statHsn">—</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="icon">🔍</span>
+      <input type="text" id="searchName" placeholder="Search by item name…">
+    </div>
+    <div class="search-wrap" style="max-width:200px;">
+      <span class="icon">📎</span>
+      <input type="text" id="searchBarcode" placeholder="Search barcode…">
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap" id="stockContainer">
+    <div id="loadingState">
+      <div class="spinner"></div>
+      <p>Loading stock data…</p>
+    </div>
+  </div>
+
+</main>
+
+<!-- Export Button -->
+<button id="downloadCsvBtn">
+  📊 Export to CSV
+</button>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const SUPABASE_URL = "https://krveybwqyuuipenhawtx.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_5nif9Qruk9n0ChTqgdtoIQ_g2YHVbao";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) { window.location.href = "Login.html"; return; }
+
+  const container  = document.getElementById("stockContainer");
+  const editBtn    = document.getElementById("editToggleBtn");
+  const addBtn     = document.getElementById("addItemBtn");
+  const saveAllBtn = document.getElementById("saveAllBtn");
+  const searchName = document.getElementById("searchName");
+  const searchBarcode = document.getElementById("searchBarcode");
+  const downloadBtn = document.getElementById("downloadCsvBtn");
+  const logoutBtn   = document.getElementById("logoutBtn");
+  const hamburger   = document.getElementById("hamburger");
+  const sidebar     = document.getElementById("sidebar");
+  const overlay     = document.getElementById("sidebarOverlay");
+
+  let editMode = false;
+  let stockData = [];
+  let currentSortColumn = -1;
+  let currentSortDirection = 1;
+  let hsnGstMap = {};
+
+  // — Mobile sidebar —
+  hamburger.onclick = () => { sidebar.classList.toggle("open"); overlay.classList.toggle("show"); };
+  overlay.onclick   = () => { sidebar.classList.remove("open"); overlay.classList.remove("show"); };
+
+  // — Logout —
+  logoutBtn.onclick = async () => { await supabase.auth.signOut(); window.location.href = "Login.html"; };
+
+  // — Load HSN CSV —
+  async function loadHsnData() {
+    try {
+      const res = await fetch("https://krveybwqyuuipenhawtx.supabase.co/storage/v1/object/public/Pub/hsn4_gst_rates.csv");
+      const text = await res.text();
+      text.trim().split("\n").slice(1).forEach(line => {
+        const cols = [];
+        let cur = "", inQ = false;
+        for (let c of line) {
+          if (c === '"') { inQ = !inQ; }
+          else if (c === ',' && !inQ) { cols.push(cur); cur = ""; }
+          else { cur += c; }
+        }
+        cols.push(cur);
+        const hsn = cols[0]?.trim(), gst = cols[2]?.trim();
+        if (hsn) hsnGstMap[hsn] = gst || "N/A";
+      });
+    } catch(e) { console.error("HSN load failed", e); }
+  }
+
+  // — Fetch stock —
+  async function fetchData() {
+    const { data } = await supabase.from("Stock").select("*").order("ID", { ascending: true });
+    stockData = data || []
