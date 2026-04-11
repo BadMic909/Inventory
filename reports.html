@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports — Evergreen Golf</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f1117; --surface: #181c27; --surface2: #1e2333; --surface3: #252a3a;
+      --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+      --text: #e8ecf0; --muted: #7a8499; --dim: #4a5068;
+      --accent: #3ddc84; --accent-dim: rgba(61,220,132,0.13);
+      --red: #ff5f57; --red-dim: rgba(255,95,87,0.13);
+      --amber: #ffbd2e; --amber-dim: rgba(255,189,46,0.13);
+      --blue: #5b9df9; --blue-dim: rgba(91,157,249,0.13);
+      --gold: #c9a84c; --gold-dim: rgba(201,168,76,0.13);
+      --sidebar: 220px; --topbar: 60px; --r: 10px; --rs: 6px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── TOPBAR ── */
+    #topBar {
+      position: fixed; top: 0; left: 0; right: 0; height: var(--topbar);
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px 0 calc(var(--sidebar) + 20px); z-index: 100;
+    }
+    .brand { font-size: 0.82rem; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+    .brand-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    #hamburger { display: none; background: none; border: none; color: var(--text); font-size: 1.3rem; cursor: pointer; }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      position: fixed; top: 0; left: 0; width: var(--sidebar); height: 100vh;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; z-index: 200; transition: transform 0.3s ease;
+    }
+    .sb-logo { height: var(--topbar); display: flex; align-items: center; gap: 10px; padding: 0 18px; border-bottom: 1px solid var(--border); }
+    .sb-icon { width: 30px; height: 30px; background: linear-gradient(135deg, var(--accent), #1aa85a); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .sb-title { font-size: 0.88rem; font-weight: 700; line-height: 1.2; }
+    .sb-title span { display: block; font-size: 0.65rem; font-weight: 400; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .sb-nav { flex: 1; padding: 14px 8px; display: flex; flex-direction: column; gap: 2px; }
+    .nav-sec { font-size: 0.62rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim); padding: 10px 10px 4px; }
+    .nav-link { display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: var(--rs); color: var(--muted); text-decoration: none; font-size: 0.86rem; font-weight: 500; transition: all 0.15s; border: none; background: none; width: 100%; cursor: pointer; font-family: inherit; }
+    .nav-link:hover { background: var(--surface3); color: var(--text); }
+    .nav-link.active { background: var(--accent-dim); color: var(--accent); }
+    .sb-foot { padding: 10px 8px; border-top: 1px solid var(--border); }
+    #sideOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 150; }
+    #sideOverlay.show { display: block; }
+
+    /* ── MAIN ── */
+    #main { margin-left: var(--sidebar); margin-top: var(--topbar); padding: 26px 26px 100px; }
+
+    /* ── BUTTONS ── */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: var(--rs); font-size: 0.82rem; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; white-space: nowrap; }
+    .btn:active { transform: scale(0.97); }
+    .btn-ghost { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+    .btn-ghost:hover { background: var(--surface3); }
+    .btn-accent { background: var(--accent); color: #071a0e; font-weight: 700; }
+    .btn-accent:hover { opacity: 0.88; }
+    .btn-amber { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+    .btn-amber:hover { background: rgba(255,189,46,0.22); }
+    .btn-blue { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+    .btn-blue:hover { background: rgba(91,157,249,0.22); }
+    .btn-red { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+    .btn-red:hover { background: rgba(255,95,87,0.22); }
+    .btn-gold { background: var(--gold-dim); border-color: var(--gold); color: var(--gold); }
+    .btn-gold:hover { background: rgba(201,168,76,0.22); }
+    .btn-sm { padding: 5px 11px; font-size: 0.77rem; }
+
+    /* ── PAGE HEAD ── */
+    .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
+    .page-head h1 { font-size: 1.55rem; font-weight: 700; }
+    .page-head p { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    .head-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ── DATE FILTER ── */
+    .date-bar {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 12px 16px; margin-bottom: 22px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .date-bar label { font-size: 0.78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .date-input {
+      background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--rs);
+      color: var(--text); font-family: inherit; font-size: 0.82rem; padding: 7px 11px; outline: none;
+      transition: border-color 0.15s; cursor: pointer;
+    }
+    .date-input:focus { border-color: var(--accent); }
+    .date-input::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
+    .preset-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .preset-btn { padding: 6px 12px; border-radius: var(--rs); font-size: 0.76rem; font-weight: 600; font-family: inherit; cursor: pointer; border: 1px solid var(--border2); background: var(--surface2); color: var(--muted); transition: all 0.15s; }
+    .preset-btn:hover, .preset-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+    .date-sep { color: var(--dim); font-size: 0.8rem; }
+
+    /* ── KPI GRID ── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; margin-bottom: 22px; }
+    .kpi {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 18px 20px; position: relative; overflow: hidden; transition: border-color 0.2s;
+    }
+    .kpi:hover { border-color: var(--border2); }
+    .kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+    .kpi.green::before { background: var(--accent); }
+    .kpi.amber::before { background: var(--amber); }
+    .kpi.blue::before { background: var(--blue); }
+    .kpi.red::before { background: var(--red); }
+    .kpi.gold::before { background: var(--gold); }
+    .kpi-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--dim); margin-bottom: 8px; }
+    .kpi-val { font-size: 1.6rem; font-weight: 700; font-family: 'DM Mono', monospace; line-height: 1; }
+    .kpi-sub { font-size: 0.73rem; color: var(--muted); margin-top: 6px; }
+    .kpi-icon { position: absolute; top: 16px; right: 16px; font-size: 1.3rem; opacity: 0.25; }
+
+    /* ── SECTION HEADERS ── */
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; margin-top: 30px; flex-wrap: wrap; gap: 10px; }
+    .section-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .section-title .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+    /* ── CHART CARDS ── */
+    .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px,1fr)); gap: 16px; margin-bottom: 22px; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; }
+    .chart-card h3 { font-size: 0.82rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px; }
+    .chart-wrap { position: relative; }
+
+    /* ── TABLES ── */
+    .tbl-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; margin-bottom: 22px; }
+    .tbl-card-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 8px; }
+    .tbl-card-head h3 { font-size: 0.84rem; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+    .tbl-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+    thead tr { border-bottom: 1px solid var(--border2); }
+    thead th { padding: 10px 14px; text-align: left; font-size: 0.67rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--dim); white-space: nowrap; }
+    thead th.r { text-align: right; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 10px 14px; vertical-align: middle; }
+    tbody td.r { text-align: right; font-family: 'DM Mono', monospace; }
+    .mono { font-family: 'DM Mono', monospace; }
+
+    /* ── BADGES ── */
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; }
+    .badge-green { background: var(--accent-dim); color: var(--accent); }
+    .badge-amber { background: var(--amber-dim); color: var(--amber); }
+    .badge-red { background: var(--red-dim); color: var(--red); }
+    .badge-blue { background: var(--blue-dim); color: var(--blue); }
+
+    /* ── RANK BARS ── */
+    .rank-bar-wrap { display: flex; align-items: center; gap: 10px; }
+    .rank-bar-bg { flex: 1; height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; max-width: 120px; }
+    .rank-bar { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.6s ease; }
+
+    /* ── EXPORT PANEL ── */
+    .export-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 22px; margin-bottom: 22px; }
+    .export-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 14px; margin-top: 16px; }
+    .export-card { background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--rs); padding: 18px; }
+    .export-card h4 { font-size: 0.84rem; font-weight: 700; margin-bottom: 4px; }
+    .export-card p { font-size: 0.76rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+    .export-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ── LOADING / EMPTY ── */
+    .center-state { padding: 60px 20px; text-align: center; color: var(--muted); }
+    .spinner { display: inline-block; width: 26px; height: 26px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── LOW STOCK HIGHLIGHT ── */
+    .low-stock { color: var(--red) !important; }
+    .ok-stock { color: var(--accent); }
+
+    /* ── TOAST ── */
+    #toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface3); border: 1px solid var(--border2); color: var(--text); padding: 10px 20px; border-radius: 50px; font-size: 0.82rem; font-weight: 600; opacity: 0; transition: all 0.3s; z-index: 999; pointer-events: none; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      #topBar { padding: 0 14px; }
+      .brand { display: none; }
+      #hamburger { display: block; }
+      #sidebar { transform: translateX(-100%); }
+      #sidebar.open { transform: translateX(0); }
+      #main { margin-left: 0; padding: 14px 12px 100px; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .chart-grid { grid-template-columns: 1fr; }
+      .export-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="sideOverlay"></div>
+
+<nav id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-icon">&#9971;</div>
+    <div class="sb-title">Evergreen <span>Golf IMS</span></div>
+  </div>
+  <div class="sb-nav">
+    <div class="nav-sec">Navigation</div>
+    <a href="sales.html" class="nav-link">&#128722; Sales</a>
+    <a href="items.html" class="nav-link">&#128230; Stock</a>
+    <div class="nav-sec">Reports</div>
+    <a href="reports.html" class="nav-link active">&#128202; Analytics</a>
+    <a href="#" class="nav-link">&#128203; Edit Log</a>
+  </div>
+  <div class="sb-foot">
+    <button id="logoutBtn" class="nav-link btn-red" style="width:100%;">&#8617; Logout</button>
+  </div>
+</nav>
+
+<header id="topBar">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button id="hamburger">&#9776;</button>
+    <div class="brand"><span class="brand-dot"></span> Evergreen Golf &nbsp;&middot;&nbsp; Reports</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span id="lastRefresh" style="font-size:0.75rem;color:var(--dim);"></span>
+    <button class="btn btn-ghost btn-sm" onclick="refreshAll()">&#8635; Refresh</button>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- PAGE HEAD -->
+  <div class="page-head">
+    <div>
+      <h1>Analytics &amp; Reports</h1>
+      <p id="summaryLine">Loading data…</p>
+    </div>
+  </div>
+
+  <!-- DATE FILTER -->
+  <div class="date-bar">
+    <label>Period</label>
+    <div class="preset-btns">
+      <button class="preset-btn" onclick="setPreset(7)">7 Days</button>
+      <button class="preset-btn active" onclick="setPreset(30)">30 Days</button>
+      <button class="preset-btn" onclick="setPreset(90)">90 Days</button>
+      <button class="preset-btn" onclick="setPreset(365)">1 Year</button>
+      <button class="preset-btn" onclick="setPreset(0)">All Time</button>
+    </div>
+    <span class="date-sep">or</span>
+    <label>From</label>
+    <input type="date" id="dateFrom" class="date-input" onchange="applyDateFilter()">
+    <label>To</label>
+    <input type="date" id="dateTo" class="date-input" onchange="applyDateFilter()">
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi green"><div class="kpi-icon">&#128181;</div><div class="kpi-label">Total Revenue</div><div class="kpi-val" id="kRevenue">—</div><div class="kpi-sub" id="kRevenueSub"></div></div>
+    <div class="kpi blue"><div class="kpi-icon">&#128203;</div><div class="kpi-label">Total Sales</div><div class="kpi-val" id="kSales">—</div><div class="kpi-sub" id="kSalesSub"></div></div>
+    <div class="kpi amber"><div class="kpi-icon">&#128717;</div><div class="kpi-label">Avg Order Value</div><div class="kpi-val" id="kAOV">—</div><div class="kpi-sub" id="kAOVSub"></div></div>
+    <div class="kpi gold"><div class="kpi-icon">&#127991;</div><div class="kpi-label">Units Sold</div><div class="kpi-val" id="kUnits">—</div><div class="kpi-sub" id="kUnitsSub"></div></div>
+    <div class="kpi red"><div class="kpi-icon">&#128230;</div><div class="kpi-label">Low Stock Items</div><div class="kpi-val" id="kLow">—</div><div class="kpi-sub">qty ≤ 3</div></div>
+    <div class="kpi green"><div class="kpi-icon">&#128184;</div><div class="kpi-label">GST Collected</div><div class="kpi-val" id="kGST">—</div><div class="kpi-sub">approx. incl. in revenue</div></div>
+  </div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="section-head">
+    <div class="section-title"><span class="dot"></span> Sales Trend</div>
+  </div>
+  <div class="chart-grid">
+    <div class="chart-card" style="grid-column: 1 / -1;">
+      <h3>Daily Revenue (in period)</h3>
+      <div class="chart-wrap" style="height:220px;"><canvas id="chartRevenue"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Top 8 Items by Revenue</h3>
+      <div class="chart-wrap" style="height:240px;"><canvas id="chartItems"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Sales by Customer (Top 8)</h3>
+      <div class="chart-wrap" style="height:240px;"><canvas id="chartCustomers"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TOP PRODUCTS TABLE -->
+  <div class="section-head">
+    <div class="section-title"><span class="dot"></span> Product Performance</div>
+  </div>
+  <div class="tbl-card">
+    <div class="tbl-card-head">
+      <h3>&#127941; Top Selling Items</h3>
+      <span style="font-size:0.75rem;color:var(--muted);">by revenue in period</span>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Item</th><th>Barcode</th><th class="r">Qty Sold</th><th class="r">Revenue</th><th class="r">Avg Price</th><th class="r">Share</th>
+        </tr></thead>
+        <tbody id="topItemsTbody"><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--dim);">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RECENT SALES TABLE -->
+  <div class="section-head">
+    <div class="section-title"><span class="dot"></span> Recent Sales</div>
+    <div id="salesTableMeta" style="font-size:0.75rem;color:var(--muted);"></div>
+  </div>
+  <div class="tbl-card">
+    <div class="tbl-card-head">
+      <h3>&#128203; Sales Ledger</h3>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="salesSearch" placeholder="Search customer…" style="background:var(--surface3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-family:inherit;font-size:0.8rem;padding:6px 10px;outline:none;width:170px;" oninput="renderSalesTable()">
+      </div>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th>Sale #</th><th>Customer</th><th>Items</th><th class="r">Total</th><th>Date</th>
+        </tr></thead>
+        <tbody id="salesTbody"><tr><td colspan="5" style="text-align:center;padding:30px;color:var(--dim);">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- STOCK HEALTH TABLE -->
+  <div class="section-head">
+    <div class="section-title"><span class="dot"></span> Stock Health</div>
+  </div>
+  <div class="tbl-card">
+    <div class="tbl-card-head">
+      <h3>&#128230; Inventory Status</h3>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-ghost" onclick="filterStock('all')" id="sf-all">All</button>
+        <button class="btn btn-sm btn-ghost" onclick="filterStock('low')" id="sf-low">&#128308; Low (&le;3)</button>
+        <button class="btn btn-sm btn-ghost" onclick="filterStock('out')" id="sf-out">&#9940; Out</button>
+      </div>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th>Item</th><th>Barcode</th><th class="r">Stock Qty</th><th class="r">MRP (₹)</th><th class="r">Stock Value</th><th>Status</th>
+        </tr></thead>
+        <tbody id="stockTbody"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--dim);">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CUSTOMER TABLE -->
+  <div class="section-head">
+    <div class="section-title"><span class="dot"></span> Customer Insights</div>
+  </div>
+  <div class="tbl-card">
+    <div class="tbl-card-head">
+      <h3>&#128101; Top Customers</h3>
+      <span style="font-size:0.75rem;color:var(--muted);">by total spend in period</span>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Customer</th><th class="r">Orders</th><th class="r">Total Spend</th><th class="r">Avg Order</th><th class="r">% of Revenue</th>
+        </tr></thead>
+        <tbody id="customerTbody"><tr><td colspan="6" style="text-align:center;padding:30px;color:var(--dim);">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- EXPORT PANEL -->
+  <div class="section-head">
+    <div class="section-title"><span class="dot"></span> Export &amp; Download</div>
+  </div>
+  <div class="export-panel">
+    <p style="font-size:0.82rem;color:var(--muted);">Download data for backup, accounting, or re-import. CSV files can be opened in Excel and are importable back into Supabase.</p>
+    <div class="export-grid">
+
+      <div class="export-card">
+        <h4>&#128230; Stock Snapshot</h4>
+        <p>Full inventory with barcodes, quantities, MRP and HSN codes. Import-ready format for Supabase Stock table.</p>
+        <div class="export-btns">
+          <button class="btn btn-accent btn-sm" onclick="exportStock('csv')">&#8659; CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportStock('json')">&#8659; JSON</button>
+        </div>
+      </div>
+
+      <div class="export-card">
+        <h4>&#128203; All Sales</h4>
+        <p>Complete sales ledger with customer names, item breakdown, quantities and totals. Re-importable into Supabase Sales table.</p>
+        <div class="export-btns">
+          <button class="btn btn-accent btn-sm" onclick="exportSales('csv')">&#8659; CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportSales('json')">&#8659; JSON</button>
+        </div>
+      </div>
+
+      <div class="export-card">
+        <h4>&#128202; Period Sales Report</h4>
+        <p>Revenue summary for the currently selected date range. Ideal for bookkeeping and GST filing.</p>
+        <div class="export-btns">
+          <button class="btn btn-amber btn-sm" onclick="exportPeriodReport()">&#8659; CSV Report</button>
+        </div>
+      </div>
+
+      <div class="export-card">
+        <h4>&#127381; Product Performance</h4>
+        <p>Item-by-item sales breakdown with quantities sold and revenue share, for the selected period.</p>
+        <div class="export-btns">
+          <button class="btn btn-blue btn-sm" onclick="exportProductPerf()">&#8659; CSV</button>
+        </div>
+      </div>
+
+      <div class="export-card">
+        <h4>&#9940; Low Stock Alert</h4>
+        <p>Items with 3 or fewer units remaining. Use for restocking orders.</p>
+        <div class="export-btns">
+          <button class="btn btn-red btn-sm" onclick="exportLowStock()">&#8659; CSV</button>
+        </div>
+      </div>
+
+      <div class="export-card">
+        <h4>&#128101; Customer Summary</h4>
+        <p>All customers with their total order count and lifetime spend, sorted by value.</p>
+        <div class="export-btns">
+          <button class="btn btn-gold btn-sm" onclick="exportCustomers()">&#8659; CSV</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+(async () => {
+  const SUPABASE_URL = "https://krveybwqyuuipenhawtx.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_5nif9Qruk9n0ChTqgdtoIQ_g2YHVbao";
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Auth check
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { window.location.href = "Login.html"; return; }
+
+  document.getElementById("logoutBtn").onclick = () => db.auth.signOut().then(() => location.href = "Login.html");
+  const hamburger = document.getElementById("hamburger");
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sideOverlay");
+  hamburger.onclick = () => { sidebar.classList.toggle("open"); overlay.classList.toggle("show"); };
+  overlay.onclick = () => { sidebar.classList.remove("open"); overlay.classList.remove("show"); };
+
+  // State
+  let allSales = [], allStock = [], hsnMap = {};
+  let filteredSales = [];
+  let stockFilter = 'all';
+  let charts = {};
+
+  // HSN loader
+  async function loadHsn() {
+    try {
+      const r = await fetch(SUPABASE_URL + "/storage/v1/object/public/Pub/hsn4_gst_rates.csv");
+      const text = await r.text();
+      text.trim().split("\n").slice(1).forEach(line => {
+        const cols = []; let cur = "", inQ = false;
+        for (const ch of line) {
+          if (ch === '"') inQ = !inQ;
+          else if (ch === ',' && !inQ) { cols.push(cur); cur = ""; }
+          else cur += ch;
+        }
+        cols.push(cur);
+        if (cols[0]?.trim()) hsnMap[cols[0].trim()] = parseFloat(cols[2]) || 0;
+      });
+    } catch(e) {}
+  }
+
+  async function fetchAll() {
+    const [salesRes, stockRes] = await Promise.all([
+      db.from("Sales").select("*").order("created_at", { ascending: false }),
+      db.from("Stock").select("*").order("ID", { ascending: true })
+    ]);
+    allSales = salesRes.data || [];
+    allStock = stockRes.data || [];
+  }
+
+  // ── DATE FILTER ──
+  let currentPreset = 30;
+
+  window.setPreset = (days) => {
+    currentPreset = days;
+    document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+    event.target.classList.add("active");
+    const to = new Date();
+    const from = days === 0 ? new Date("2000-01-01") : new Date(Date.now() - days * 86400000);
+    document.getElementById("dateFrom").value = from.toISOString().split("T")[0];
+    document.getElementById("dateTo").value = to.toISOString().split("T")[0];
+    applyDateFilter();
+  };
+
+  window.applyDateFilter = () => {
+    const from = new Date(document.getElementById("dateFrom").value + "T00:00:00");
+    const to = new Date(document.getElementById("dateTo").value + "T23:59:59");
+    filteredSales = allSales.filter(s => {
+      if (!s.created_at) return true;
+      const d = new Date(s.created_at);
+      return d >= from && d <= to;
+    });
+    renderAll();
+  };
+
+  function initDates() {
+    const to = new Date();
+    const from = new Date(Date.now() - 30 * 86400000);
+    document.getElementById("dateFrom").value = from.toISOString().split("T")[0];
+    document.getElementById("dateTo").value = to.toISOString().split("T")[0];
+    applyDateFilter();
+  }
+
+  // ── COMPUTE ──
+  function computeMetrics(sales) {
+    const totalRevenue = sales.reduce((s, r) => s + (r.Invoice || 0), 0);
+    const totalUnits = sales.reduce((s, r) => s + (r.Item_RP || []).reduce((a, i) => a + (i.qty || 0), 0), 0);
+    const aov = sales.length ? totalRevenue / sales.length : 0;
+
+    // GST estimation
+    let totalGst = 0;
+    sales.forEach(s => {
+      (s.Item_RP || []).forEach(item => {
+        const stock = allStock.find(x => x.Barcode == item.barcode);
+        const rate = stock?.HSN ? (hsnMap[String(stock.HSN)] || 0) : 0;
+        const lineTotal = (item.qty || 0) * (item.price || 0);
+        if (rate) totalGst += lineTotal - lineTotal / (1 + rate / 100);
+      });
+    });
+
+    // Items aggregation
+    const itemMap = {};
+    sales.forEach(s => {
+      (s.Item_RP || []).forEach(item => {
+        const stock = allStock.find(x => x.Barcode == item.barcode);
+        const name = stock ? stock.Item_Name : (item.barcode || "Unknown");
+        if (!itemMap[name]) itemMap[name] = { name, barcode: item.barcode, qty: 0, revenue: 0 };
+        itemMap[name].qty += item.qty || 0;
+        itemMap[name].revenue += (item.qty || 0) * (item.price || 0);
+      });
+    });
+    const topItems = Object.values(itemMap).sort((a, b) => b.revenue - a.revenue);
+
+    // Customers
+    const custMap = {};
+    sales.forEach(s => {
+      const c = s.Customer_Name || "Walk-in";
+      if (!custMap[c]) custMap[c] = { name: c, orders: 0, spend: 0 };
+      custMap[c].orders++;
+      custMap[c].spend += s.Invoice || 0;
+    });
+    const topCustomers = Object.values(custMap).sort((a, b) => b.spend - a.spend);
+
+    // Daily revenue
+    const dayMap = {};
+    sales.forEach(s => {
+      if (!s.created_at) return;
+      const day = s.created_at.split("T")[0];
+      dayMap[day] = (dayMap[day] || 0) + (s.Invoice || 0);
+    });
+    const days = Object.keys(dayMap).sort();
+
+    // Low stock
+    const lowStock = allStock.filter(x => (x.QTY || 0) <= 3);
+
+    return { totalRevenue, totalUnits, aov, totalGst, topItems, topCustomers, days, dayMap, lowStock };
+  }
+
+  // ── RENDER ALL ──
+  function renderAll() {
+    const m = computeMetrics(filteredSales);
+
+    // KPIs
+    document.getElementById("kRevenue").textContent = "₹" + m.totalRevenue.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+    document.getElementById("kRevenueSub").textContent = `across ${filteredSales.length} orders`;
+    document.getElementById("kSales").textContent = filteredSales.length;
+    document.getElementById("kSalesSub").textContent = `of ${allSales.length} all-time`;
+    document.getElementById("kAOV").textContent = "₹" + m.aov.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+    document.getElementById("kAOVSub").textContent = "per order avg";
+    document.getElementById("kUnits").textContent = m.totalUnits.toLocaleString("en-IN");
+    document.getElementById("kUnitsSub").textContent = "items sold";
+    document.getElementById("kLow").textContent = m.lowStock.length;
+    document.getElementById("kGST").textContent = "₹" + m.totalGst.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+
+    // Summary line
+    document.getElementById("summaryLine").textContent =
+      `${filteredSales.length} sales · ₹${m.totalRevenue.toLocaleString("en-IN", { maximumFractionDigits: 0 })} revenue · ${allStock.length} stock items`;
+
+    renderCharts(m);
+    renderTopItems(m.topItems, m.totalRevenue);
+    renderSalesTable();
+    renderStockTable();
+    renderCustomers(m.topCustomers, m.totalRevenue);
+
+    document.getElementById("lastRefresh").textContent = "Updated " + new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  // ── CHARTS ──
+  const PALETTE = ["#3ddc84","#5b9df9","#ffbd2e","#ff5f57","#c9a84c","#a78bfa","#34d399","#f472b6"];
+
+  function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+  function renderCharts(m) {
+    // Daily revenue
+    destroyChart("revenue");
+    const ctx1 = document.getElementById("chartRevenue").getContext("2d");
+    charts["revenue"] = new Chart(ctx1, {
+      type: "line",
+      data: {
+        labels: m.days.map(d => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })),
+        datasets: [{
+          label: "Revenue (₹)",
+          data: m.days.map(d => m.dayMap[d]),
+          borderColor: "#3ddc84", backgroundColor: "rgba(61,220,132,0.08)",
+          borderWidth: 2, pointRadius: 3, pointBackgroundColor: "#3ddc84",
+          fill: true, tension: 0.35
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => "₹" + ctx.raw.toLocaleString("en-IN") } } },
+        scales: {
+          x: { grid: { color: "rgba(255,255,255,0.04)" }, ticks: { color: "#4a5068", maxTicksLimit: 10, font: { size: 11 } } },
+          y: { grid: { color: "rgba(255,255,255,0.04)" }, ticks: { color: "#4a5068", font: { size: 11 }, callback: v => "₹" + (v >= 1000 ? (v/1000).toFixed(0)+"k" : v) } }
+        }
+      }
+    });
+
+    // Top items bar
+    destroyChart("items");
+    const top8 = m.topItems.slice(0, 8);
+    const ctx2 = document.getElementById("chartItems").getContext("2d");
+    charts["items"] = new Chart(ctx2, {
+      type: "bar",
+      data: {
+        labels: top8.map(i => i.name.length > 18 ? i.name.slice(0, 16) + "…" : i.name),
+        datasets: [{
+          data: top8.map(i => i.revenue),
+          backgroundColor: PALETTE,
+          borderRadius: 5
+        }]
+      },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => "₹" + ctx.raw.toLocaleString("en-IN") } } },
+        scales: {
+          x: { grid: { color: "rgba(255,255,255,0.04)" }, ticks: { color: "#4a5068", font: { size: 11 }, callback: v => "₹" + (v >= 1000 ? (v/1000).toFixed(0)+"k" : v) } },
+          y: { grid: { display: false }, ticks: { color: "#7a8499", font: { size: 11 } } }
+        }
+      }
+    });
+
+    // Customers doughnut
+    destroyChart("customers");
+    const top8c = m.topCustomers.slice(0, 8);
+    const ctx3 = document.getElementById("chartCustomers").getContext("2d");
+    charts["customers"] = new Chart(ctx3, {
+      type: "doughnut",
+      data: {
+        labels: top8c.map(c => c.name),
+        datasets: [{ data: top8c.map(c => c.spend), backgroundColor: PALETTE, borderWidth: 0, hoverOffset: 6 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "right", labels: { color: "#7a8499", font: { size: 11 }, boxWidth: 12, padding: 10 } },
+          tooltip: { callbacks: { label: ctx => ctx.label + ": ₹" + ctx.raw.toLocaleString("en-IN") } }
+        },
+        cutout: "62%"
+      }
+    });
+  }
+
+  // ── TOP ITEMS TABLE ──
+  function renderTopItems(items, totalRevenue) {
+    const tbody = document.getElementById("topItemsTbody");
+    if (!items.length) { tbody.innerHTML = "<tr><td colspan='7' style='text-align:center;padding:30px;color:var(--dim);'>No sales in period</td></tr>"; return; }
+    const maxRev = items[0]?.revenue || 1;
+    tbody.innerHTML = items.slice(0, 20).map((item, i) => {
+      const pct = totalRevenue ? ((item.revenue / totalRevenue) * 100).toFixed(1) : 0;
+      const barW = Math.round((item.revenue / maxRev) * 100);
+      return `<tr>
+        <td><span style="color:var(--dim);font-size:0.75rem;">${i + 1}</span></td>
+        <td style="font-weight:500;">${item.name}</td>
+        <td class="mono" style="color:var(--muted);font-size:0.75rem;">${item.barcode}</td>
+        <td class="r">${item.qty.toLocaleString("en-IN")}</td>
+        <td class="r" style="color:var(--accent);">₹${item.revenue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+        <td class="r">₹${item.qty ? (item.revenue / item.qty).toFixed(0) : 0}</td>
+        <td class="r">
+          <div class="rank-bar-wrap">
+            <div class="rank-bar-bg"><div class="rank-bar" style="width:${barW}%"></div></div>
+            <span style="font-size:0.75rem;color:var(--muted);min-width:38px;text-align:right;">${pct}%</span>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+  }
+
+  // ── SALES TABLE ──
+  window.renderSalesTable = () => {
+    const q = document.getElementById("salesSearch").value.toLowerCase().trim();
+    const rows = filteredSales.filter(s => !q || (s.Customer_Name || "").toLowerCase().includes(q));
+    document.getElementById("salesTableMeta").textContent = `${rows.length} records`;
+    const tbody = document.getElementById("salesTbody");
+    if (!rows.length) { tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;padding:30px;color:var(--dim);'>No sales found</td></tr>"; return; }
+    tbody.innerHTML = rows.slice(0, 100).map(s => {
+      const items = (s.Item_RP || []).map(i => {
+        const st = allStock.find(x => x.Barcode == i.barcode);
+        return `<span style="font-size:0.74rem;color:var(--muted);">${st ? st.Item_Name : i.barcode} ×${i.qty}</span>`;
+      }).join(" &nbsp;");
+      const date = s.created_at ? new Date(s.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+      return `<tr>
+        <td><span style="color:var(--accent);font-weight:600;font-size:0.8rem;">SALE-${s.Sale_No}</span><br><span style="color:var(--dim);font-size:0.72rem;">#${s.id}</span></td>
+        <td style="font-weight:500;">${s.Customer_Name || '<span style="color:var(--dim)">Walk-in</span>'}</td>
+        <td style="max-width:240px;">${items || '<span style="color:var(--dim);font-size:0.75rem;">No items</span>'}</td>
+        <td class="r" style="color:var(--accent);font-weight:700;">₹${(s.Invoice || 0).toLocaleString("en-IN")}</td>
+        <td style="color:var(--muted);font-size:0.78rem;white-space:nowrap;">${date}</td>
+      </tr>`;
+    }).join("");
+  };
+
+  // ── STOCK TABLE ──
+  window.filterStock = (f) => {
+    stockFilter = f;
+    document.querySelectorAll("[id^='sf-']").forEach(b => { b.className = "btn btn-sm btn-ghost"; });
+    document.getElementById("sf-" + f).className = "btn btn-sm btn-accent";
+    renderStockTable();
+  };
+
+  function renderStockTable() {
+    let data = allStock;
+    if (stockFilter === "low") data = allStock.filter(x => x.QTY > 0 && x.QTY <= 3);
+    if (stockFilter === "out") data = allStock.filter(x => !x.QTY || x.QTY <= 0);
+    const tbody = document.getElementById("stockTbody");
+    if (!data.length) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;padding:30px;color:var(--dim);'>No items</td></tr>"; return; }
+    tbody.innerHTML = data.map(r => {
+      const qty = r.QTY || 0;
+      const val = qty * (r.MRP || 0);
+      let badge, statusClass;
+      if (qty <= 0) { badge = `<span class="badge badge-red">Out of Stock</span>`; statusClass = ""; }
+      else if (qty <= 3) { badge = `<span class="badge badge-amber">Low Stock</span>`; statusClass = ""; }
+      else { badge = `<span class="badge badge-green">In Stock</span>`; statusClass = "ok-stock"; }
+      return `<tr>
+        <td style="font-weight:500;">${r.Item_Name || "—"}</td>
+        <td class="mono" style="color:var(--muted);font-size:0.77rem;">${r.Barcode || "—"}</td>
+        <td class="r ${qty <= 3 ? "low-stock" : "ok-stock"}" style="font-weight:700;">${qty}</td>
+        <td class="r">₹${Number(r.MRP || 0).toLocaleString("en-IN")}</td>
+        <td class="r" style="color:var(--muted);">₹${val.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+        <td>${badge}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  // ── CUSTOMERS TABLE ──
+  function renderCustomers(customers, totalRevenue) {
+    const tbody = document.getElementById("customerTbody");
+    if (!customers.length) { tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;padding:30px;color:var(--dim);'>No customers</td></tr>"; return; }
+    tbody.innerHTML = customers.slice(0, 25).map((c, i) => {
+      const pct = totalRevenue ? ((c.spend / totalRevenue) * 100).toFixed(1) : 0;
+      return `<tr>
+        <td style="color:var(--dim);font-size:0.75rem;">${i + 1}</td>
+        <td style="font-weight:500;">${c.name}</td>
+        <td class="r">${c.orders}</td>
+        <td class="r" style="color:var(--accent);font-weight:700;">₹${c.spend.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+        <td class="r">₹${(c.spend / c.orders).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+        <td class="r" style="color:var(--muted);">${pct}%</td>
+      </tr>`;
+    }).join("");
+  }
+
+  // ── REFRESH ──
+  window.refreshAll = async () => {
+    document.getElementById("lastRefresh").textContent = "Refreshing…";
+    await fetchAll();
+    applyDateFilter();
+    toast("Data refreshed ✓");
+  };
+
+  // ── TOAST ──
+  function toast(msg) {
+    const el = document.getElementById("toast");
+    el.textContent = msg; el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 2800);
+  }
+
+  // ── EXPORT HELPERS ──
+  function downloadFile(content, filename, type) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([content], { type }));
+    a.download = filename; a.click();
+    toast("Downloaded " + filename + " ✓");
+  }
+
+  function csvRow(arr) {
+    return arr.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",");
+  }
+
+  window.exportStock = (fmt) => {
+    const date = new Date().toLocaleDateString("en-IN").replace(/\//g, "-");
+    if (fmt === "json") {
+      downloadFile(JSON.stringify(allStock, null, 2), `Evergreen_Stock_${date}.json`, "application/json");
+    } else {
+      let csv = csvRow(["ID", "Barcode", "Item_Name", "QTY", "Unit", "MRP", "HSN"]) + "\n";
+      allStock.forEach(r => { csv += csvRow([r.ID, r.Barcode, r.Item_Name, r.QTY, r.Unit, r.MRP, r.HSN]) + "\n"; });
+      downloadFile(csv, `Evergreen_Stock_${date}.csv`, "text/csv");
+    }
+  };
+
+  window.exportSales = (fmt) => {
+    const date = new Date().toLocaleDateString("en-IN").replace(/\//g, "-");
+    if (fmt === "json") {
+      downloadFile(JSON.stringify(allSales, null, 2), `Evergreen_Sales_${date}.json`, "application/json");
+    } else {
+      let csv = csvRow(["id", "Sale_No", "Customer_Name", "Invoice", "Item_RP_JSON", "created_at"]) + "\n";
+      allSales.forEach(s => {
+        csv += csvRow([s.id, s.Sale_No, s.Customer_Name, s.Invoice, JSON.stringify(s.Item_RP || []), s.created_at]) + "\n";
+      });
+      downloadFile(csv, `Evergreen_Sales_${date}.csv`, "text/csv");
+    }
+  };
+
+  window.exportPeriodReport = () => {
+    const from = document.getElementById("dateFrom").value;
+    const to = document.getElementById("dateTo").value;
+    let csv = `Evergreen Golf — Sales Report\nPeriod: ${from} to ${to}\nGenerated: ${new Date().toLocaleString("en-IN")}\n\n`;
+    csv += csvRow(["Sale_No", "Customer", "Item", "Barcode", "Qty", "Unit_Price", "Line_Total", "GST_Rate", "GST_Amount", "Date"]) + "\n";
+    filteredSales.forEach(s => {
+      (s.Item_RP || []).forEach(item => {
+        const stock = allStock.find(x => x.Barcode == item.barcode);
+        const name = stock?.Item_Name || item.barcode;
+        const rate = stock?.HSN ? (hsnMap[String(stock.HSN)] || 0) : 0;
+        const line = (item.qty || 0) * (item.price || 0);
+        const gstAmt = rate ? (line - line / (1 + rate / 100)).toFixed(2) : 0;
+        csv += csvRow([s.Sale_No, s.Customer_Name, name, item.barcode, item.qty, item.price, line, rate ? rate + "%" : "", gstAmt, s.created_at?.split("T")[0]]) + "\n";
+      });
+    });
+    const m = computeMetrics(filteredSales);
+    csv += `\nSUMMARY\nTotal Revenue,₹${m.totalRevenue.toFixed(2)}\nTotal Orders,${filteredSales.length}\nTotal Units Sold,${m.totalUnits}\nEst. GST Collected,₹${m.totalGst.toFixed(2)}\n`;
+    downloadFile(csv, `Evergreen_Report_${from}_to_${to}.csv`, "text/csv");
+  };
+
+  window.exportProductPerf = () => {
+    const m = computeMetrics(filteredSales);
+    const from = document.getElementById("dateFrom").value;
+    const to = document.getElementById("dateTo").value;
+    let csv = csvRow(["Rank", "Item_Name", "Barcode", "Qty_Sold", "Revenue", "Avg_Price", "Revenue_Share_Pct"]) + "\n";
+    m.topItems.forEach((item, i) => {
+      const pct = m.totalRevenue ? ((item.revenue / m.totalRevenue) * 100).toFixed(2) : 0;
+      csv += csvRow([i + 1, item.name, item.barcode, item.qty, item.revenue.toFixed(2), item.qty ? (item.revenue / item.qty).toFixed(2) : 0, pct]) + "\n";
+    });
+    downloadFile(csv, `Evergreen_ProductPerf_${from}_to_${to}.csv`, "text/csv");
+  };
+
+  window.exportLowStock = () => {
+    const low = allStock.filter(x => (x.QTY || 0) <= 3);
+    let csv = csvRow(["ID", "Barcode", "Item_Name", "QTY", "Unit", "MRP", "HSN", "Status"]) + "\n";
+    low.forEach(r => {
+      const status = !r.QTY || r.QTY <= 0 ? "Out of Stock" : "Low Stock";
+      csv += csvRow([r.ID, r.Barcode, r.Item_Name, r.QTY, r.Unit, r.MRP, r.HSN, status]) + "\n";
+    });
+    downloadFile(csv, `Evergreen_LowStock_${new Date().toLocaleDateString("en-IN").replace(/\//g, "-")}.csv`, "text/csv");
+  };
+
+  window.exportCustomers = () => {
+    const m = computeMetrics(allSales); // all-time for customers
+    let csv = csvRow(["Rank", "Customer_Name", "Total_Orders", "Total_Spend", "Avg_Order_Value"]) + "\n";
+    m.topCustomers.forEach((c, i) => {
+      csv += csvRow([i + 1, c.name, c.orders, c.spend.toFixed(2), (c.spend / c.orders).toFixed(2)]) + "\n";
+    });
+    downloadFile(csv, `Evergreen_Customers_${new Date().toLocaleDateString("en-IN").replace(/\//g, "-")}.csv`, "text/csv");
+  };
+
+  // ── INIT ──
+  await Promise.all([fetchAll(), loadHsn()]);
+  initDates();
+  filterStock("all");
+
+})();
+</script>
+
+</body>
+</html>
